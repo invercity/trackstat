@@ -1,0 +1,15 @@
+{
+  "name": "trackstat",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": ["apps/*"],
+  "scripts": {
+    "dev:api": "npm run start:dev -w api",
+    "dev:web": "npm run dev -w web",
+    "seed": "npm run seed -w api",
+    "import:protocol": "ts-node apps/api/src/import-protocol.ts",
+    "build": "npm --workspaces --if-present run build",
+    "typecheck": "npm --workspaces --if-present run typecheck",
+    "test": "npm --workspaces --if-present run test"
+  }
+}
