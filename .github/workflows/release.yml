@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   release:
-    name: Create Tag & GitHub Release
+    name: Create Tag, Bump Versions & GitHub Release
     runs-on: ubuntu-latest
     if: "!startsWith(github.event.head_commit.message, 'chore(release):')"
 
@@ -20,6 +20,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -71,8 +72,28 @@ jobs:
             NEXT_TAG="v${MAJOR}.${MINOR}.${PATCH}"
           fi
 
-          echo "Using release tag: $NEXT_TAG"
+          PLAIN_VER="${NEXT_TAG#v}"
+          echo "Using release tag: $NEXT_TAG (version: $PLAIN_VER)"
           echo "tag=$NEXT_TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$PLAIN_VER" >> "$GITHUB_OUTPUT"
+
+      - name: Update package.json versions (root, api, web) & push release commit
+        env:
+          PLAIN_VER: ${{ steps.version.outputs.version }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Update version in package.json (root, apps/api, apps/web) and package-lock.json
+          npm version "$PLAIN_VER" --allow-same-version --no-git-tag-version --workspaces --include-workspace-root
+
+          # Commit and push changes if package.json files changed
+          if [ -n "$(git status --porcelain package.json apps/*/package.json package-lock.json)" ]; then
+            git add package.json apps/api/package.json apps/web/package.json package-lock.json
+            git commit -m "chore(release): bump version to $PLAIN_VER [skip ci]"
+            git push origin HEAD:${{ github.ref_name }}
+          fi
 
       - name: Create Git Tag and GitHub Release
         env:
@@ -82,9 +103,11 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
+          # Tag the release commit and push tag
           git tag -a "$TAG" -m "Release $TAG"
           git push origin "$TAG"
 
+          # Create the GitHub Release with notes
           gh release create "$TAG" \
             --title "Release $TAG" \
             --generate-notes \
