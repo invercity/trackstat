@@ -1,0 +1,91 @@
+name: Release — Auto Tag & GitHub Release
+
+on:
+  push:
+    branches:
+      - master
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create Tag & GitHub Release
+    runs-on: ubuntu-latest
+    if: "!startsWith(github.event.head_commit.message, 'chore(release):')"
+
+    steps:
+      - name: Checkout repository with full history and tags
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24.x'
+          cache: 'npm'
+
+      - name: Install dependencies, test & build before release
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
+          npm run build
+
+      - name: Determine next version tag
+        id: version
+        run: |
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          CANDIDATE_TAG="v${PKG_VERSION#v}"
+
+          # If the version in package.json hasn't been tagged yet (e.g. v1.0.0), use it directly
+          if ! git rev-parse "$CANDIDATE_TAG" >/dev/null 2>&1; then
+            NEXT_TAG="$CANDIDATE_TAG"
+          else
+            # Otherwise, bump the latest semver tag automatically based on commit message
+            LATEST_TAG=$(git tag -l "v[0-9]*.[0-9]*.[0-9]*" --sort=-v:refname | head -n 1)
+            if [ -z "$LATEST_TAG" ]; then
+              LATEST_TAG="v1.0.0"
+            fi
+
+            CLEAN_VER="${LATEST_TAG#v}"
+            CLEAN_VER="${CLEAN_VER%%-*}"
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$CLEAN_VER"
+
+            COMMIT_MSG=$(git log -1 --pretty=%B)
+            if echo "$COMMIT_MSG" | grep -qiE "(BREAKING CHANGE|!:|^major)"; then
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+            elif echo "$COMMIT_MSG" | grep -qiE "(^feat|feat\(|feat:|merge.*feat)"; then
+              MINOR=$((MINOR + 1))
+              PATCH=0
+            elif echo "$COMMIT_MSG" | grep -qiE "(^fix|fix\(|fix:|merge.*fix)"; then
+              PATCH=$((PATCH + 1))
+            else
+              PATCH=$((PATCH + 1))
+            fi
+
+            NEXT_TAG="v${MAJOR}.${MINOR}.${PATCH}"
+          fi
+
+          echo "Using release tag: $NEXT_TAG"
+          echo "tag=$NEXT_TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Create Git Tag and GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git tag -a "$TAG" -m "Release $TAG"
+          git push origin "$TAG"
+
+          gh release create "$TAG" \
+            --title "Release $TAG" \
+            --generate-notes \
+            --verify-tag

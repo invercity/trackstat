@@ -1,0 +1,25 @@
+{
+  "name": "web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3010",
+    "build": "next build",
+    "start": "next start -p 3010",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test 'src/**/*.spec.ts'"
+  },
+  "dependencies": {
+    "bootstrap": "^5.3.8",
+    "next": "^16.4.2",
+    "react": "^19.3.1",
+    "react-bootstrap": "^2.10.10",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "typescript": "^6.0.3"
+  }
+}

@@ -1,0 +1,28 @@
+a {
+  text-decoration: none !important;
+  transition: color 0.15s ease-in-out, transform 0.15s ease-in-out, filter 0.15s ease-in-out;
+}
+
+a:hover {
+  text-decoration: none !important;
+}
+
+/* Стиль для текстових посилань: підсвічування кольору та легке збільшення без підкреслення */
+a:not(.btn):not(.nav-link):not(.navbar-brand):not(.page-link) {
+  display: inline-block;
+}
+
+a:not(.btn):not(.nav-link):not(.navbar-brand):not(.page-link):hover {
+  color: #0b5ed7;
+  transform: scale(1.03);
+  filter: brightness(1.15);
+}
+
+.table th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.table th.sortable:hover {
+  background-color: #f1f3f5;
+}
