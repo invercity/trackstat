@@ -150,6 +150,7 @@ Three automated workflows configured in [`.github/workflows`](.github/workflows)
 
 3. **`release.yml` (Release — Auto Tag & GitHub Release):**  
    Automated semantic versioning and release publishing on branch merge:
+   - Synchronizes and bumps versions in `package.json` (`root`, `apps/api`, `apps/web`) and `package-lock.json`.
    - `feat:` or `feat(...)` ➔ **minor version bump** (e.g., `v1.0.0` ➔ `v1.1.0`).
    - `fix:` or `fix(...)` ➔ **patch version bump** (e.g., `v1.0.0` ➔ `v1.0.1`).
    - `BREAKING CHANGE` or `!:` ➔ **major version bump** (e.g., `v1.0.0` ➔ `v2.0.0`).
