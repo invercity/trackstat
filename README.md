@@ -1,5 +1,7 @@
 # 🏃 TrackStat
 
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+
 Modern athletics platform for result tracking, statistics, official rankings, relay squad selection, and sports school management.
 
 **Tech Stack:**
@@ -160,4 +162,8 @@ Three automated workflows configured in [`.github/workflows`](.github/workflows)
 
 ## 📄 License & Copyright
 
-Andrii Yermolenko © 2026. Contact: [yermolenko.ua@gmail.com](mailto:yermolenko.ua@gmail.com).
+This project is open-source software licensed under the **[Apache License, Version 2.0](LICENSE)**.  
+See the [`LICENSE`](LICENSE) file for the full license text.
+
+Copyright © 2026 Andrii Yermolenko.  
+Contact: [yermolenko.ua@gmail.com](mailto:yermolenko.ua@gmail.com).
