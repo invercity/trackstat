@@ -1,123 +1,137 @@
 # 🏃 TrackStat
 
-Сучасна платформа для збору, обліку, аналітики та формування збірних команд і рейтингів з легкої атлетики.
+Modern athletics platform for result tracking, statistics, official rankings, relay squad selection, and sports school management.
 
-**Стек:**
+**Tech Stack:**
 - **Backend:** NestJS 12, Mongoose 9, MongoDB (`apps/api`)
 - **Frontend:** Next.js 16 (App Router), React 19, React-Bootstrap 5 (`apps/web`)
-- **Testing & CI/CD:** Вбудований `node:test`, GitHub Actions (CI, Dependency Audit, Semantic Release)
+- **Testing & CI/CD:** Built-in `node:test`, GitHub Actions (CI, Dependency Audit, Semantic Release)
 
 ---
 
-## 🚀 Основний функціонал
+## 🚀 Core Features
 
-### 1. 👥 Спортсмени та профілі ([`/athletes`](http://localhost:3010/athletes))
-- Каталог атлетів із сортуванням за прізвищем, роком народження, школою/клубом.
-- Миттєвий пошук за ПІБ, тренером, школою або містом.
-- Фільтрація вихованців за спортивними школами (`?schoolId=...`).
-- Персональна картка спортсмена ([`/athletes/:id`](http://localhost:3010/athletes)):
-  - Особисті рекорди (Personal Bests — PB): загальні, стадіон (outdoor) та манеж (indoor).
-  - Кращі результати сезону (Season Bests — SB) з розбивкою по роках.
-  - Повна історія офіційних стартів із зазначенням змагання, дати, розряду та очок World Athletics.
-  - Клікабельне посилання на картку відповідної спортивної школи (ДЮСШ).
+### 1. 👥 Athletes & Profiles ([`/athletes`](http://localhost:3010/athletes))
+- Directory of athletes with sorting by surname, birth date, and school/club.
+- Instant search by full name, coach, sports school, or city.
+- Filter athletes by sports school (`?schoolId=...`).
+- Individual athlete profiles ([`/athletes/:id`](http://localhost:3010/athletes)):
+  - Personal Bests (PB): overall, outdoor stadium, and indoor arena.
+  - Season Bests (SB) with yearly breakdown.
+  - Complete history of official starts including competition, date, sport rank, and World Athletics points.
+  - Direct links to affiliated sports schools (CYSS / ДЮСШ).
 
-### 2. 🏫 Спортивні школи (ДЮСШ) ([`/schools`](http://localhost:3010/schools))
-- Каталог дитячо-юнацьких спортивних шкіл, СДЮШОР, ОШВСМ та легкоатлетичних клубів.
-- Пошук за назвою або містом розташування (Чернігів, Ніжин, Прилуки, Бахмач тощо).
-- Картка ДЮСШ ([`/schools/:id`](http://localhost:3010/schools)):
-  - Загальна інформація про заклад (назва, скорочення, місто, область, примітки).
-  - Повний інтерактивний список вихованців із фільтрами за віковими категоріями (U16, U18, Дорослі) та статтю.
-  - Швидкий перехід у розширений список спортсменів або до рейтингу сезону.
+### 2. 🏫 Sports Schools ([`/schools`](http://localhost:3010/schools))
+- Directory of Children and Youth Sports Schools (CYSS / ДЮСШ), Specialized Olympic Reserve Schools (SDYUSHOR), and athletics clubs.
+- Search by school name or location (Chernihiv, Nizhyn, Pryluky, Bakhmach, etc.).
+- Sports school profile ([`/schools/:id`](http://localhost:3010/schools)):
+  - School details (full name, abbreviation, city, region, notes).
+  - Interactive roster with age category (U16, U18, Adult) and gender filters.
+  - Quick navigation to the global athletes list or current season rankings.
 
-### 3. 🏆 Офіційний рейтинг спортсменів та шкіл ([`/rankings`](http://localhost:3010/rankings))
-Автоматичний розрахунок рейтингу за сезон (стадіон + манеж) відповідно до регламенту федерації:
-- **Топ-10 спортсменів** у 6 категоріях:
-  - U16 (юнаки та дівчата)
-  - U18 (юнаки та дівчата)
-  - Дорослі (чоловіки та жінки)
-- **Топ-10 спортивних шкіл** за сумою очок вихованців.
-- **Правило 5 кращих стартів:** до заліку кожного спортсмена автоматично враховуються до 5 найрезультативніших виступів за сезон.
-- **Очки за місця (1–12):** шкала відповідно до рівня турніру (Олімпіада, ЧС, ЧЄ, ЧУ, Кубок України, Чемпіонат області тощо).
-- **Бонусні бали:** за виконання/підтвердження нормативів МСУМК (+100), МСУ (+50), КМСУ (+25), I розряд (+10) та за рекорди України (+100) чи області (+25).
-- **Деталізація:** клік по спортсмену або школі показує модальне вікно з повним протоколом нарахування балів.
-- **Довідник (💡):** інтерактивна таблиця з усіма правилами та матрицею нарахування очок.
+### 3. 📅 Competitions ([`/competitions`](http://localhost:3010/competitions))
+- Season selector combobox dynamically aggregated from competition dates (covering both indoor and outdoor events).
+- Competition level categorization: **City**, **Regional**, **National**, **International**.
+- Competitions grouped by month (e.g., September, May) sorted chronologically.
+- Competition details ([`/competitions/:id`](http://localhost:3010/competitions)):
+  - Breakdown by age categories (U16, U18, U20, U21, U23, Adults) and absolute standings.
+  - Separation of heats and finals for track disciplines.
+  - Results per discipline with timing type (manual/electronic), rank, and WA points.
 
-### 4. ⚡ Формування естафетних команд ([`/relays`](http://localhost:3010/relays))
-Інтелектуальний модуль комплектування естафетних збірних області:
-- **Види естафет:** 4×100 м, 4×400 м, Шведська естафета (100+200+300+400 м), Змішана 4×400 м (2 чол. + 2 жін.).
-- **Категорії:** U16, U18, Дорослі (чоловіки та жінки).
-- **Потенційний результат:** точний автоматичний розрахунок суми етапів команди.
-- **Режими комплектування шведської естафети:**
-  - *Звичайний режим:* підбір за офіційними критеріями (етап 4 — кращий на 400 м, етап 3 — наступний на 400 м, етап 2 — кращий на 200 м, етап 1 — кращий на 100 м серед тих, хто залишився).
-  - *Smart режим:* повний комбінаторний перебір усіх можливих перестановок для досягнення абсолютно найменшого сумарного часу естафети.
-- **Картка естафети ([`/relays/:id`](http://localhost:3010/relays)):**
-  - Детальний опис умов відбору на кожен етап.
-  - Списки потенційних запасних (до 3 претендентів на кожний етап з їхніми особистими рекордами).
+### 4. 📊 Results & Records Leaderboard ([`/results`](http://localhost:3010/results))
+- **Season Bests (SB):** Top 10 best marks of the season grouped by discipline, gender, and age category.
+- **Career Records (PB):** Top 10 all-time personal bests across each discipline.
+- Seamless toggling between Season Bests and Career Records.
 
-### 5. 🏅 Нормативи ЄСКУ та World Athletics Scoring
-- **Розряди України:** автоматичне присвоєння нормативів ЄСКУ (МСМК, МС, КМС, I, II, III, юнацькі розряди) з урахуванням специфіки ручного (+0.24 с) та електронного хронометражу.
-- **Очки World Athletics (IAAF):** розрахунок очок за офіційними поліномами для всіх бігових та технічних видів програми.
+### 5. 🏆 Official Rankings ([`/rankings`](http://localhost:3010/rankings))
+Automated season ranking calculation (indoor arena + outdoor stadium) complying with official federation criteria:
+- **Top 10 Athletes** across 6 categories:
+  - U16 (Boys and Girls)
+  - U18 (Boys and Girls)
+  - Adults (Men and Women)
+- **Top 10 Sports Schools** based on cumulative points from their athletes.
+- **Best 5 Starts Rule:** up to 5 highest-scoring performances per athlete count toward their season ranking score.
+- **Place Points (1st–12th place):** scaled according to competition tier (Olympics, World Championships, European Championships, National Championships, Regional Championships, etc.).
+- **Bonus Points:** awarded for sport rank achievements (MSUMK +100, MSU +50, KMSU +25, 1st category +10) and record breaches (National Record +100, Regional Record +25).
+- **Scoring Protocol:** clicking an athlete or school reveals an itemized breakdown modal for every scored start.
+- **Reference Guide (💡):** interactive modal detailing full scoring tables and criteria.
+
+### 6. ⚡ Relay Squad Formation ([`/relays`](http://localhost:3010/relays))
+Intelligent squad selection module for regional relay teams:
+- **Relay Formats:** 4×100m, 4×400m, 4×800m, Swedish Relay (100+200+300+400m), Mixed 4×400m (2 men + 2 women).
+- **Categories:** U16, U18, U21, U23, Adults (Men and Women).
+- **Estimated Total Time:** computed from individual member split marks.
+- **Swedish Relay Selection Modes:**
+  - *Standard Mode:* selected by tactical criteria (Leg 4: top 400m runner, Leg 3: second 400m runner, Leg 2: top 200m runner, Leg 1: fastest remaining 100m sprinter).
+  - *Smart Mode:* combinatorial search across all candidate permutations to minimize total estimated relay time.
+- **Relay Details ([`/relays/:id`](http://localhost:3010/relays)):**
+  - Leg descriptions and tactical roles.
+  - Ranked reserves list (up to 3 candidate contenders per leg with personal bests).
+
+### 7. 🏅 National Standards & World Athletics Scoring
+- **Ukrainian Sport Ranks (ESKU):** automated standard verification (MSMC, MS, CMS, 1st, 2nd, 3rd, youth ranks) with manual timing conversion adjustments (+0.24s).
+- **World Athletics (IAAF) Scoring:** points calculation using official scoring polynomial formulas across all track and field disciplines.
 
 ---
 
-## 🛠️ Панель адміністратора ([`/admin`](http://localhost:3010/admin))
+## 🛠️ Admin Panel ([`/admin`](http://localhost:3010/admin))
 
-Усі ключові сутності системи повністю доступні для перегляду, створення, редагування та видалення (CRUD):
+All core system entities feature full CRUD support:
 
-| Розділ | Можливості редагування через адмінку |
+| Section | Capabilities |
 |---|---|
-| **Спортсмени** (`/admin/athletes`) | Прізвище, ім'я, по батькові, дата народження, стать, тренери (теги), **прив'язка до ДЮСШ (випадаючий список)**, клуб, область, примітки. |
-| **Спортивні школи** (`/admin/schools`) | Повна назва ДЮСШ/клубу, коротка назва, місто розташування, область, примітки. |
-| **Змагання** (`/admin/competitions`) | Назва, **рівень турніру (Чемпіонат області, України, Європи тощо — впливає на рейтинг)**, дата початку та завершення, місце проведення, сезон, вікові категорії, перелік доступних дисциплін. |
-| **Результати** (`/admin/results`) | Змагання, спортсмен, дисципліна, статус (OK, DNS, DNF, DQ, NM), результат (час/відстань/очки), **тип хронометражу (авто, ручний, електронний)**, вітер, зайняте місце, розряд, очки WA, командні очки, стадія/забіг. Фільтр за змаганнями. |
-| **Дисципліни** (`/admin/disciplines`) | Назва (укр/англ), тип (час, відстань, очки), група видів, доступні вікові категорії. |
-| **Сезони** (`/admin/seasons`) | Рік, ознака Indoor (в приміщенні / манеж), назва сезону. |
+| **Athletes** (`/admin/athletes`) | Last name, first name, middle name, birth date, gender, coaches (tags), **sports school linkage (select)**, club, region, notes. |
+| **Sports Schools** (`/admin/schools`) | Full school/club name, abbreviation, city, region, notes. |
+| **Competitions** (`/admin/competitions`) | Title, **competition level (City, Regional, National, International)**, start and end dates, location, season, age categories, disciplines list. |
+| **Results** (`/admin/results`) | Competition, athlete, discipline, status (OK, DNS, DNF, DQ, NM), mark value, **timing type (auto, manual, electronic)**, wind, place, sport rank, WA points, team points, heat/round. Filterable by competition. |
+| **Disciplines** (`/admin/disciplines`) | Title (UA/EN), type (time, distance, points), discipline group, allowed age categories. |
+| **Seasons** (`/admin/seasons`) | Year, indoor indicator (arena vs. stadium), label. |
 
-> **Авторизація в адмінці:**  
-> Доступ захищено JWT-токеном (`/api/auth/login`).  
-> За замовчуванням у режимі розробки: **Логін:** `admin`, **Пароль:** `admin` (налаштовується у `.env`).
+> **Authentication:**  
+> Protected via JWT tokens (`/api/auth/login`).  
+> Default development credentials: **Username:** `admin`, **Password:** `admin` (configurable in `.env`).
 
 ---
 
-## 💻 Швидкий старт
+## 💻 Quick Start
 
-### Вимоги:
+### Prerequisites:
 - Node.js >= 24
-- MongoDB (локально на порту 27017 або через URI)
+- MongoDB (locally on port 27017 or connection string via URI)
 
-### Встановлення та запуск:
+### Installation & Launch:
 ```bash
-# 1. Встановлення залежностей
+# 1. Install dependencies
 npm install
 
-# 2. Налаштування змінних оточення
+# 2. Configure environment variables
 cp apps/api/.env.example apps/api/.env
 
-# 3. Запуск MongoDB (якщо не запущена як служба)
+# 3. Start MongoDB (if not running as a system service)
 mongod --dbpath /path/to/data/db
 
-# 4. Початкове наповнення даними (базові дисципліни)
+# 4. Seed initial database records (disciplines and initial data)
 npm run seed
 
-# 5. Запуск серверів у режимі розробки:
-npm run dev:api    # API NestJS: http://localhost:4010/api
-npm run dev:web    # Web Next.js: http://localhost:3010
+# 5. Start development servers:
+npm run dev:api    # NestJS API: http://localhost:4010/api
+npm run dev:web    # Next.js Web: http://localhost:3010
 ```
 
 ---
 
-## 🧪 Тестування та перевірка якості
+## 🧪 Testing & Quality Assurance
 
-У проєкті налаштовано лаконічний і швидкий конвеєр тестування:
+Fast, native testing suite using Node.js built-in test runner:
 
 ```bash
-# Перевірка типів TypeScript по всіх воркспейсах
+# Typecheck TypeScript across all workspaces
 npm run typecheck
 
-# Запуск усіх модульних тестів (вбудований node:test)
+# Run all unit tests (node:test)
 npm test
 
-# Повна збірка API та Web
+# Production build of API and Web
 npm run build
 ```
 
@@ -125,18 +139,24 @@ npm run build
 
 ## 🔄 CI / CD (GitHub Actions)
 
-У директорії [`.github/workflows`](.github/workflows) налаштовано три автоматичні процеси:
+Three automated workflows configured in [`.github/workflows`](.github/workflows):
 
 1. **`ci.yml` (CI — Build & Test):**  
-   Запускається на кожен push у `main`, `master`, `feat/**` та на pull requests.  
-   Виконує `npm ci` ➔ `npm run typecheck` ➔ `npm test` ➔ `npm run build`.
+   Triggered on push to `main`, `master`, `feat/**`, and pull requests.  
+   Executes `npm ci` ➔ `npm run typecheck` ➔ `npm test` ➔ `npm run build`.
 
 2. **`audit.yml` (Dependency Audit):**  
-   Щоденна перевірка безпеки залежностей через npm Advisory DB.
+   Daily security vulnerability scans via npm Advisory DB.
 
 3. **`release.yml` (Release — Auto Tag & GitHub Release):**  
-   Автоматичне створення тегів та релізів при мерджі/пуші в основну гілку:
-   - `feat:` або `feat(...)` ➔ **бамп мінорної версії** (наприклад, `v1.0.0` ➔ `v1.1.0`).
-   - `fix:` або `fix(...)` ➔ **бамп патч версії** (наприклад, `v1.0.0` ➔ `v1.0.1`).
-   - `BREAKING CHANGE` або `!:` ➔ **бамп мажорної версії** (наприклад, `v1.0.0` ➔ `v2.0.0`).
-   - Автоматично генерує release notes на GitHub.
+   Automated semantic versioning and release publishing on branch merge:
+   - `feat:` or `feat(...)` ➔ **minor version bump** (e.g., `v1.0.0` ➔ `v1.1.0`).
+   - `fix:` or `fix(...)` ➔ **patch version bump** (e.g., `v1.0.0` ➔ `v1.0.1`).
+   - `BREAKING CHANGE` or `!:` ➔ **major version bump** (e.g., `v1.0.0` ➔ `v2.0.0`).
+   - Automatically generates release notes on GitHub.
+
+---
+
+## 📄 License & Copyright
+
+Andrii Yermolenko © 2026. Contact: [yermolenko.ua@gmail.com](mailto:yermolenko.ua@gmail.com).
