@@ -26,7 +26,7 @@ export class AuthGuard implements CanActivate {
   async canActivate(ctx: ExecutionContext) {
     const req = ctx.switchToHttp().getRequest();
     if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return true;
-    if (req.path.endsWith('/auth/login')) return true;
+    if (req.path.endsWith('/auth/login') || req.path.endsWith('/protocol-import/preview')) return true;
     const token = (req.headers.authorization ?? '').replace(/^Bearer /, '');
     try {
       await this.jwt.verifyAsync(token);
