@@ -11,13 +11,18 @@ export const auth = {
 
 export async function api<T = any>(path: string, init: { method?: string; body?: unknown } = {}): Promise<T> {
   const token = auth.get();
+  const isFormData = typeof FormData !== 'undefined' && init.body instanceof FormData;
+  const headers: Record<string, string> = {
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+  if (init.body !== undefined && !isFormData) {
+    headers['Content-Type'] = 'application/json';
+  }
+
   const res = await fetch(`/api${path}`, {
     method: init.method ?? 'GET',
-    headers: {
-      ...(init.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
+    headers,
+    body: isFormData ? (init.body as FormData) : init.body !== undefined ? JSON.stringify(init.body) : undefined,
     cache: 'no-store',
   });
   const data = await res.json().catch(() => null);

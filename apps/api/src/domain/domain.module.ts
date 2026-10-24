@@ -4,11 +4,13 @@ import {
   AthletesController,
   CompetitionsController,
   DisciplinesController,
+  ProtocolImportController,
   RankingsController,
   RelaysController,
   ResultsController,
   SchoolsController,
   SeasonsController,
+  WebImportController,
 } from './controllers';
 import {
   Athlete,
@@ -28,11 +30,13 @@ import {
   AthletesService,
   CompetitionsService,
   DisciplinesService,
+  ProtocolImporterService,
   RankingsService,
   RelaysService,
   ResultsService,
   SchoolsService,
   SeasonsService,
+  WebImporterService,
 } from './services';
 
 @Module({
@@ -55,6 +59,8 @@ import {
     RelaysController,
     SchoolsController,
     RankingsController,
+    ProtocolImportController,
+    WebImportController,
   ],
   providers: [
     DisciplinesService,
@@ -65,6 +71,8 @@ import {
     RelaysService,
     SchoolsService,
     RankingsService,
+    ProtocolImporterService,
+    WebImporterService,
   ],
 })
 export class DomainModule {}

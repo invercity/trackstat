@@ -298,3 +298,134 @@ export interface LeaderboardResponse {
   availableYears?: number[];
   groups: LeaderboardGroup[];
 }
+
+export interface ParsedItemPreview {
+  id: string;
+  selected: boolean;
+  place?: number;
+  athleteName: string;
+  lastName: string;
+  firstName: string;
+  middleName?: string;
+  dobStr?: string;
+  birthDate?: string;
+  ageCategory: string;
+  gender: 'M' | 'F';
+  teamStr?: string;
+  schoolId?: string;
+  schoolName?: string;
+  disciplineCanonicalName: string;
+  disciplineId?: string;
+  disciplineType: string;
+  eventHeader: string;
+  round: 'забіг' | 'фінал';
+  rawMark: string;
+  value?: number;
+  timing?: 'manual' | 'electronic';
+  status: string;
+  sportRank?: string;
+  waScore?: number;
+  coaches: string[];
+  isRelay: boolean;
+  relayMembers?: string[];
+  athleteMatch: {
+    status: 'new' | 'exact_match' | 'fuzzy_match';
+    existingAthleteId?: string;
+    existingName?: string;
+    existingDob?: string;
+  };
+  warnings: string[];
+}
+
+export interface ProtocolPreviewResponse {
+  fileName: string;
+  metadata: {
+    suggestedName: string;
+    suggestedDate?: string;
+    suggestedEndDate?: string;
+    suggestedLocation?: string;
+    suggestedLevel?: string;
+    suggestedSeasonYear?: number;
+  };
+  stats: {
+    totalRows: number;
+    validResults: number;
+    newAthletesCount: number;
+    matchedAthletesCount: number;
+    disciplinesCount: number;
+    warningsCount: number;
+  };
+  disciplinesFound: string[];
+  items: ParsedItemPreview[];
+}
+
+export interface ProtocolCommitPayload {
+  competitionMode: 'existing' | 'new';
+  competitionId?: string;
+  newCompetition?: {
+    name: string;
+    date: string;
+    endDate?: string;
+    location: string;
+    level: string;
+    seasonYear: number;
+  };
+  items: ParsedItemPreview[];
+}
+
+export interface ProtocolCommitResponse {
+  success: boolean;
+  competitionId: string;
+  competitionName: string;
+  importedResultsCount: number;
+  athletesCreatedCount: number;
+  athletesMatchedCount: number;
+}
+
+export interface WebIntegrationMeta {
+  id: string;
+  name: string;
+  website: string;
+  description: string;
+  defaultRegion: string;
+  enabled: boolean;
+}
+
+export interface WebCompetitionItem {
+  id: string;
+  title: string;
+  startDate: string;
+  endDate: string;
+  city: string;
+  region: string;
+  country: string;
+  indoor: boolean;
+  year: number;
+  detectedLevel: 'city' | 'regional' | 'national' | 'international';
+  hasSchedule: boolean;
+}
+
+export interface WebImportPreviewResponse {
+  integrationId: string;
+  competition: {
+    id: string;
+    name: string;
+    date: string;
+    endDate?: string;
+    location: string;
+    level: 'city' | 'regional' | 'national' | 'international';
+    indoor: boolean;
+    seasonYear: number;
+    existingCompetitionId?: string;
+  };
+  stats: {
+    totalParticipantsFound: number;
+    validResults: number;
+    matchedAthletesCount: number;
+    newAthletesCount: number;
+    disciplinesCount: number;
+    warningsCount: number;
+  };
+  items: ParsedItemPreview[];
+}
+

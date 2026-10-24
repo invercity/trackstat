@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { Badge, ButtonGroup, Form, Table, ToggleButton } from 'react-bootstrap';
 import State from '@/components/State';
+import PageHeader from '@/components/ui/PageHeader';
 import { useFetch } from '@/lib/api';
 import { formatDate } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
@@ -143,16 +144,12 @@ export default function CompetitionsPage() {
   return (
     <>
       {/* Page Title & Filter Controls */}
-      <div className="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
-        <div>
-          <h1 className="h3 mb-1">{pageTitle}</h1>
-          <p className="text-muted small mb-0">
-            {filtered.length} {filtered.length === 1 ? 'змагання' : 'змагань'}
-          </p>
-        </div>
-
-        {/* Filters */}
-        <div className="d-flex flex-wrap gap-3 align-items-center">
+      <PageHeader
+        icon="📅"
+        title={pageTitle}
+        subtitle={`${filtered.length} ${filtered.length === 1 ? 'змагання' : 'змагань'}`}
+        actions={
+          <div className="d-flex flex-wrap gap-3 align-items-center">
           {/* Year Combobox */}
           <div className="d-flex align-items-center gap-2">
             <label htmlFor="comp-year-select" className="small text-muted fw-semibold text-nowrap mb-0">
@@ -236,7 +233,8 @@ export default function CompetitionsPage() {
             </ButtonGroup>
           </div>
         </div>
-      </div>
+      }
+    />
 
       <State loading={loading} error={error} empty={filtered.length === 0}>
         <div className="d-flex flex-column gap-4">

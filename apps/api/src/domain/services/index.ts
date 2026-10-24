@@ -6,3 +6,5 @@ export * from './schools.service';
 export * from './results.service';
 export * from './relays.service';
 export * from './rankings.service';
+export * from './protocol-importer.service';
+export * from './web-importer.service';

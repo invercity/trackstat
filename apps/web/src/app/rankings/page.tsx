@@ -18,6 +18,7 @@ import {
 } from 'react-bootstrap';
 import State from '@/components/State';
 import MarkDisplay from '@/components/ui/MarkDisplay';
+import PageHeader from '@/components/ui/PageHeader';
 import SchoolLink from '@/components/ui/SchoolLink';
 import ScoringRulesModal from '@/components/rankings/ScoringRulesModal';
 import { useFetch } from '@/lib/api';
@@ -78,18 +79,16 @@ export default function RankingsPage() {
   const displayYear = rankings?.year || new Date().getFullYear();
 
   return (
-    <Container className="py-4">
+    <>
       {/* Header */}
-      <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
-        <div>
-          <div className="d-flex align-items-center gap-2 flex-wrap mb-1">
-            <span style={{ fontSize: '1.8rem' }}>🏆</span>
-            <h1 className="h2 mb-0">
-              {t('rankings.title')} {displayYear}
-            </h1>
+      <PageHeader
+        icon="🏆"
+        title={
+          <div className="d-flex align-items-center gap-2">
+            <span>{t('rankings.title')} {displayYear}</span>
             <button
               type="button"
-              className="btn btn-sm btn-outline-warning border-0 p-1 ms-1 text-decoration-none"
+              className="btn btn-sm btn-outline-warning border-0 p-1 text-decoration-none"
               style={{ fontSize: '1.25rem', lineHeight: 1 }}
               title="Критерії та правила нарахування очок"
               onClick={() => setShowRulesModal(true)}
@@ -97,28 +96,28 @@ export default function RankingsPage() {
               💡
             </button>
           </div>
-          <p className="text-muted mb-0">{t('rankings.subtitle')}</p>
-        </div>
-
-        {/* Year selector */}
-        {rankings?.allYears && rankings.allYears.length > 0 && (
-          <div className="d-flex align-items-center gap-2">
-            <span className="text-muted small fw-semibold text-nowrap">Рік:</span>
-            <Form.Select
-              size="sm"
-              value={selectedYear || String(displayYear)}
-              onChange={(e) => setSelectedYear(e.target.value)}
-              style={{ width: 'auto', minWidth: '120px' }}
-            >
-              {rankings.allYears.map((yr) => (
-                <option key={yr} value={yr}>
-                  {yr} {yr === new Date().getFullYear() ? '(поточний)' : ''}
-                </option>
-              ))}
-            </Form.Select>
-          </div>
-        )}
-      </div>
+        }
+        subtitle={t('rankings.subtitle')}
+        actions={
+          rankings?.allYears && rankings.allYears.length > 0 ? (
+            <div className="d-flex align-items-center gap-2">
+              <span className="text-muted small fw-semibold text-nowrap">Рік:</span>
+              <Form.Select
+                size="sm"
+                value={selectedYear || String(displayYear)}
+                onChange={(e) => setSelectedYear(e.target.value)}
+                style={{ width: 'auto', minWidth: '120px' }}
+              >
+                {rankings.allYears.map((yr) => (
+                  <option key={yr} value={yr}>
+                    {yr} {yr === new Date().getFullYear() ? '(поточний)' : ''}
+                  </option>
+                ))}
+              </Form.Select>
+            </div>
+          ) : undefined
+        }
+      />
 
       {/* Main Mode Toggle: Athletes vs Schools */}
       <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
@@ -561,6 +560,6 @@ export default function RankingsPage() {
         show={showRulesModal}
         onHide={() => setShowRulesModal(false)}
       />
-    </Container>
+    </>
   );
 }

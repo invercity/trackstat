@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   Badge,
@@ -17,8 +17,9 @@ import State from '@/components/State';
 import CategoryBadge from '@/components/ui/CategoryBadge';
 import GenderBadge from '@/components/ui/GenderBadge';
 import MarkDisplay from '@/components/ui/MarkDisplay';
+import PageHeader from '@/components/ui/PageHeader';
 import SchoolLink from '@/components/ui/SchoolLink';
-import { useFetch } from '@/lib/api';
+import { auth, useFetch } from '@/lib/api';
 import { formatDate, fullName } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import type { LeaderboardGroup, LeaderboardResponse } from '@/lib/types';
@@ -60,6 +61,11 @@ export default function ResultsLeaderboardPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [selectedGender, setSelectedGender] = useState<'ALL' | 'M' | 'F'>('ALL');
   const [search, setSearch] = useState<string>('');
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
+
+  useEffect(() => {
+    setIsAdmin(!!auth.get());
+  }, []);
 
   const queryUrl = `/results/leaderboard?mode=${mode}${mode === 'sb' && year ? `&year=${year}` : ''}`;
   const { data, loading, error } = useFetch<LeaderboardResponse>(queryUrl);
@@ -101,32 +107,40 @@ export default function ResultsLeaderboardPage() {
   return (
     <>
       {/* Page Header */}
-      <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
-        <div>
-          <h1 className="h2 mb-1">
-            {mode === 'sb' ? `⚡ ${t('results.seasonBest')} ${displayYear}` : `🏆 ${t('results.records')}`}
-          </h1>
-          <p className="text-muted mb-0">
-            {mode === 'sb' ? t('results.subtitleSb') : t('results.subtitlePb')}
-          </p>
-        </div>
+      <PageHeader
+        icon={mode === 'sb' ? '⚡' : '🏆'}
+        title={mode === 'sb' ? `${t('results.seasonBest')} ${displayYear}` : t('results.records')}
+        subtitle={mode === 'sb' ? t('results.subtitleSb') : t('results.subtitlePb')}
+        actions={
+          <div className="d-flex align-items-center gap-2">
+            {isAdmin && (
+              <Link
+                href="/admin/import-web"
+                className="btn btn-outline-primary btn-sm fw-semibold d-inline-flex align-items-center gap-1 shadow-sm"
+              >
+                <span>🌐</span>
+                <span>{t('admin.importWeb')}</span>
+              </Link>
+            )}
 
-        {/* Mode Switcher */}
-        <ButtonGroup size="sm">
-          <Button
-            variant={mode === 'sb' ? 'primary' : 'outline-secondary'}
-            onClick={() => setMode('sb')}
-          >
-            {t('results.seasonBest')}
-          </Button>
-          <Button
-            variant={mode === 'pb' ? 'primary' : 'outline-secondary'}
-            onClick={() => setMode('pb')}
-          >
-            {t('results.records')}
-          </Button>
-        </ButtonGroup>
-      </div>
+            {/* Mode Switcher */}
+            <ButtonGroup size="sm">
+              <Button
+                variant={mode === 'sb' ? 'primary' : 'outline-secondary'}
+                onClick={() => setMode('sb')}
+              >
+                {t('results.seasonBest')}
+              </Button>
+              <Button
+                variant={mode === 'pb' ? 'primary' : 'outline-secondary'}
+                onClick={() => setMode('pb')}
+              >
+                {t('results.records')}
+              </Button>
+            </ButtonGroup>
+          </div>
+        }
+      />
 
       {/* Filter Toolbar */}
       <Card className="mb-4 shadow-sm border-0 bg-white">

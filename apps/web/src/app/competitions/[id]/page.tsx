@@ -8,6 +8,7 @@ import State from '@/components/State';
 import BackButton from '@/components/ui/BackButton';
 import CategoryBadge from '@/components/ui/CategoryBadge';
 import MarkDisplay from '@/components/ui/MarkDisplay';
+import PageHeader from '@/components/ui/PageHeader';
 import SchoolLink from '@/components/ui/SchoolLink';
 import { useFetch } from '@/lib/api';
 import { compareResults, formatDate, fullName } from '@/lib/format';
@@ -61,11 +62,19 @@ const formatRound = (round?: string | null) => {
 const getRoundWeight = (round?: string | null) => {
   if (!round) return 100;
   const r = round.trim().toLowerCase();
-  if (r.includes('фінал') && !r.includes('пів')) return 10;
-  if (r.includes('півфінал')) return 20;
-  if (r.includes('забіг') || r.includes('heat')) return 30;
-  if (r.includes('квал')) return 40;
+  if (r.includes('забіг') || r.includes('heat')) return 10;
+  if (r.includes('квал') || r.includes('qual')) return 20;
+  if (r.includes('півфінал') || r.includes('1/2') || r.includes('semi')) return 30;
+  if (r.includes('фінал') || r.includes('final')) return 40;
   return 50;
+};
+
+const getResultGender = (r: Result): 'M' | 'F' | 'OTHER' => {
+  if (r.athlete?.gender === 'M' || r.athlete?.gender === 'F') return r.athlete.gender;
+  const lower = (r.notes || r.teamName || '').toLowerCase();
+  if (lower.includes('жінк') || lower.includes('дівч') || lower.includes('women')) return 'F';
+  if (lower.includes('чолов') || lower.includes('юнак') || lower.includes('men')) return 'M';
+  return 'OTHER';
 };
 
 const rank = (a: Result, b: Result) => {
@@ -83,6 +92,7 @@ export default function CompetitionPage() {
 
   const [viewMode, setViewMode] = useState<'categories' | 'absolute'>('categories');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
+  const [selectedGender, setSelectedGender] = useState<'ALL' | 'M' | 'F'>('ALL');
 
   // Available categories in results
   const availableCategories = useMemo(() => {
@@ -94,14 +104,15 @@ export default function CompetitionPage() {
     return Array.from(set).sort((a, b) => getCategoryWeight(a) - getCategoryWeight(b));
   }, [results.data]);
 
-  // Grouped by discipline AND round (Absolute view)
+  // Grouped by discipline, gender AND round (Absolute view)
   const byDiscipline = useMemo(() => {
     if (!results.data) return [];
-    const map = new Map<string, { key: string; d: Discipline; round?: string | null; list: Result[] }>();
+    const map = new Map<string, { key: string; d: Discipline; gender: 'M' | 'F' | 'OTHER'; round?: string | null; list: Result[] }>();
     results.data.forEach((r) => {
+      const gender = getResultGender(r);
       const roundKey = r.round?.trim().toLowerCase() || '';
-      const key = `${r.discipline._id}__${roundKey}`;
-      const g = map.get(key) ?? { key, d: r.discipline, round: r.round, list: [] };
+      const key = `${r.discipline._id}__${gender}__${roundKey}`;
+      const g = map.get(key) ?? { key, d: r.discipline, gender, round: r.round, list: [] };
       g.list.push(r);
       map.set(key, g);
     });
@@ -109,31 +120,38 @@ export default function CompetitionPage() {
     groups.sort((a, b) => {
       const nameComp = (dName(a.d) || '').localeCompare(dName(b.d) || '');
       if (nameComp !== 0) return nameComp;
+      const gWeight = (g: string) => (g === 'M' ? 1 : g === 'F' ? 2 : 3);
+      const genComp = gWeight(a.gender) - gWeight(b.gender);
+      if (genComp !== 0) return genComp;
       return getRoundWeight(a.round) - getRoundWeight(b.round);
     });
     return groups;
   }, [results.data, dName]);
 
-  // Grouped by discipline, category AND round (Category view)
+  // Grouped by discipline, gender, category AND round (Category view)
   const byDisciplineAndCategory = useMemo(() => {
     if (!results.data) return [];
-    const map = new Map<string, { key: string; d: Discipline; category: string; round?: string | null; list: Result[] }>();
+    const map = new Map<string, { key: string; d: Discipline; gender: 'M' | 'F' | 'OTHER'; category: string; round?: string | null; list: Result[] }>();
 
     results.data.forEach((r) => {
+      const gender = getResultGender(r);
       const cat = r.ageCategory || 'OTHER';
       const roundKey = r.round?.trim().toLowerCase() || '';
-      const key = `${r.discipline._id}__${cat}__${roundKey}`;
-      const g = map.get(key) ?? { key, d: r.discipline, category: cat, round: r.round, list: [] };
+      const key = `${r.discipline._id}__${gender}__${cat}__${roundKey}`;
+      const g = map.get(key) ?? { key, d: r.discipline, gender, category: cat, round: r.round, list: [] };
       g.list.push(r);
       map.set(key, g);
     });
 
     const groups = Array.from(map.values());
 
-    // Sort by discipline name, then by category order, then by round
+    // Sort by discipline name, then by gender (M then F), then by category order, then by round (heats first, finals second)
     groups.sort((a, b) => {
       const nameComp = (dName(a.d) || '').localeCompare(dName(b.d) || '');
       if (nameComp !== 0) return nameComp;
+      const gWeight = (g: string) => (g === 'M' ? 1 : g === 'F' ? 2 : 3);
+      const genComp = gWeight(a.gender) - gWeight(b.gender);
+      if (genComp !== 0) return genComp;
       const catComp = getCategoryWeight(a.category) - getCategoryWeight(b.category);
       if (catComp !== 0) return catComp;
       return getRoundWeight(a.round) - getRoundWeight(b.round);
@@ -142,10 +160,20 @@ export default function CompetitionPage() {
     return groups;
   }, [results.data, dName]);
 
-  const filteredCategoryGroups = useMemo(() => {
-    if (selectedCategory === 'ALL') return byDisciplineAndCategory;
-    return byDisciplineAndCategory.filter((g) => g.category === selectedCategory);
-  }, [byDisciplineAndCategory, selectedCategory]);
+  const displayedCategoryGroups = useMemo(() => {
+    return byDisciplineAndCategory.filter((g) => {
+      if (selectedGender !== 'ALL' && g.gender !== selectedGender) return false;
+      if (selectedCategory !== 'ALL' && g.category !== selectedCategory) return false;
+      return true;
+    });
+  }, [byDisciplineAndCategory, selectedGender, selectedCategory]);
+
+  const displayedAbsoluteGroups = useMemo(() => {
+    return byDiscipline.filter((g) => {
+      if (selectedGender !== 'ALL' && g.gender !== selectedGender) return false;
+      return true;
+    });
+  }, [byDiscipline, selectedGender]);
 
   return (
     <>
@@ -153,33 +181,75 @@ export default function CompetitionPage() {
       <State loading={comp.loading} error={comp.error}>
         {c && (
           <>
-            <h1 className="h3">{c.name}</h1>
-            <p className="text-muted d-flex align-items-center gap-1 flex-wrap">
-              <span>{formatDate(c.date)}</span>
-              {c.endDate && <span>– {formatDate(c.endDate)}</span>}
-              {c.location && <span>· {c.location}</span>}
-              {c.season?.label && <span>· {c.season.label}</span>}
-              {c.ageCategories.map((x) => (
-                <CategoryBadge key={x} category={x} className="ms-1" />
-              ))}
-            </p>
+            <PageHeader
+              icon="📅"
+              title={c.name}
+              subtitle={
+                <div className="d-flex align-items-center gap-1 flex-wrap">
+                  <span>{formatDate(c.date)}</span>
+                  {c.endDate && <span>– {formatDate(c.endDate)}</span>}
+                  {c.location && <span>· {c.location}</span>}
+                  {c.season?.label && <span>· {c.season.label}</span>}
+                  {c.ageCategories.map((x) => (
+                    <CategoryBadge key={x} category={x} className="ms-1" />
+                  ))}
+                </div>
+              }
+            />
 
             <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mt-4 mb-3 border-bottom pb-2">
               <h2 className="h5 mb-0">{t('c.results')}</h2>
-              <ButtonGroup size="sm">
-                <Button
-                  variant={viewMode === 'categories' ? 'primary' : 'outline-secondary'}
-                  onClick={() => setViewMode('categories')}
-                >
-                  🏷️ {t('c.viewCategories')}
-                </Button>
-                <Button
-                  variant={viewMode === 'absolute' ? 'primary' : 'outline-secondary'}
-                  onClick={() => setViewMode('absolute')}
-                >
-                  ⚡ {t('c.viewAbsolute')}
-                </Button>
-              </ButtonGroup>
+              <div className="d-flex align-items-center gap-2 flex-wrap">
+                <ButtonGroup size="sm">
+                  <ToggleButton
+                    id="comp-gen-all"
+                    type="radio"
+                    variant="outline-secondary"
+                    name="comp-gender"
+                    value="ALL"
+                    checked={selectedGender === 'ALL'}
+                    onChange={(e) => setSelectedGender(e.currentTarget.value as 'ALL' | 'M' | 'F')}
+                  >
+                    Всі статі
+                  </ToggleButton>
+                  <ToggleButton
+                    id="comp-gen-m"
+                    type="radio"
+                    variant="outline-primary"
+                    name="comp-gender"
+                    value="M"
+                    checked={selectedGender === 'M'}
+                    onChange={(e) => setSelectedGender(e.currentTarget.value as 'ALL' | 'M' | 'F')}
+                  >
+                    Чоловіки
+                  </ToggleButton>
+                  <ToggleButton
+                    id="comp-gen-f"
+                    type="radio"
+                    variant="outline-danger"
+                    name="comp-gender"
+                    value="F"
+                    checked={selectedGender === 'F'}
+                    onChange={(e) => setSelectedGender(e.currentTarget.value as 'ALL' | 'M' | 'F')}
+                  >
+                    Жінки
+                  </ToggleButton>
+                </ButtonGroup>
+                <ButtonGroup size="sm">
+                  <Button
+                    variant={viewMode === 'categories' ? 'primary' : 'outline-secondary'}
+                    onClick={() => setViewMode('categories')}
+                  >
+                    🏷️ {t('c.viewCategories')}
+                  </Button>
+                  <Button
+                    variant={viewMode === 'absolute' ? 'primary' : 'outline-secondary'}
+                    onClick={() => setViewMode('absolute')}
+                  >
+                    ⚡ {t('c.viewAbsolute')}
+                  </Button>
+                </ButtonGroup>
+              </div>
             </div>
 
             {viewMode === 'categories' && availableCategories.length > 1 && (
@@ -217,19 +287,21 @@ export default function CompetitionPage() {
             <State
               loading={results.loading}
               error={results.error}
-              empty={viewMode === 'categories' ? filteredCategoryGroups.length === 0 : byDiscipline.length === 0}
+              empty={viewMode === 'categories' ? displayedCategoryGroups.length === 0 : displayedAbsoluteGroups.length === 0}
             >
               {viewMode === 'categories' ? (
-                filteredCategoryGroups.map(({ key, d, category, round, list }) => (
+                displayedCategoryGroups.map(({ key, d, gender, category, round, list }) => (
                   <Card key={key} className="mb-3">
                     <Card.Header className="d-flex align-items-center justify-content-between py-2">
                       <div className="d-flex align-items-center gap-2 flex-wrap">
                         <span className="fw-bold">{dName(d)}</span>
+                        {gender === 'M' && <Badge bg="primary">Чоловіки</Badge>}
+                        {gender === 'F' && <Badge bg="danger">Жінки</Badge>}
                         {category !== 'OTHER' && (
                           <CategoryBadge category={category} variant="colored" />
                         )}
                         {round && (
-                          <Badge bg={round.toLowerCase().includes('фінал') ? 'danger' : 'secondary'}>
+                          <Badge bg={round.toLowerCase().includes('фінал') && !round.toLowerCase().includes('1/2') ? 'danger' : 'info'}>
                             {formatRound(round)}
                           </Badge>
                         )}
@@ -299,14 +371,16 @@ export default function CompetitionPage() {
                   </Card>
                 ))
               ) : (
-                byDiscipline.map(({ key, d, round, list }) => (
+                displayedAbsoluteGroups.map(({ key, d, gender, round, list }) => (
                   <Card key={key} className="mb-3">
                     <Card.Header className="d-flex align-items-center justify-content-between py-2">
                       <div className="d-flex align-items-center gap-2 flex-wrap">
                         <span className="fw-bold">{dName(d)}</span>
+                        {gender === 'M' && <Badge bg="primary">Чоловіки</Badge>}
+                        {gender === 'F' && <Badge bg="danger">Жінки</Badge>}
                         <Badge bg="secondary">{t('c.viewAbsolute')}</Badge>
                         {round && (
-                          <Badge bg={round.toLowerCase().includes('фінал') ? 'danger' : 'secondary'}>
+                          <Badge bg={round.toLowerCase().includes('фінал') && !round.toLowerCase().includes('1/2') ? 'danger' : 'info'}>
                             {formatRound(round)}
                           </Badge>
                         )}

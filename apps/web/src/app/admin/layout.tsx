@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, usePathname } from 'next/navigation';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Alert, Button, Card, Form, Nav } from 'react-bootstrap';
 import { api, auth } from '@/lib/api';
@@ -47,6 +47,7 @@ function Login({ onDone }: { onDone: () => void }) {
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const { t } = useI18n();
   const params = useParams<{ resource?: string }>();
+  const pathname = usePathname();
   const [ready, setReady] = useState(false);
   const [logged, setLogged] = useState(false);
 
@@ -64,7 +65,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
     <>
       <div className="d-flex justify-content-between align-items-center mb-3">
-        <Nav variant="pills">
+        <Nav variant="pills" className="flex-wrap gap-1">
           {resources.map((r) => (
             <Nav.Item key={r}>
               <Nav.Link as={Link} href={`/admin/${r}`} active={params?.resource === r}>
@@ -72,6 +73,26 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               </Nav.Link>
             </Nav.Item>
           ))}
+          <Nav.Item>
+            <Nav.Link
+              as={Link}
+              href="/admin/import"
+              active={pathname === '/admin/import'}
+              className="fw-bold text-success border border-success"
+            >
+              📥 {t('admin.import')}
+            </Nav.Link>
+          </Nav.Item>
+          <Nav.Item>
+            <Nav.Link
+              as={Link}
+              href="/admin/import-web"
+              active={pathname === '/admin/import-web'}
+              className="fw-bold text-primary border border-primary"
+            >
+              🌐 {t('admin.importWeb')}
+            </Nav.Link>
+          </Nav.Item>
         </Nav>
         <Button variant="outline-secondary" size="sm" onClick={() => { auth.clear(); setLogged(false); }}>
           {t('common.logout')}

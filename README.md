@@ -1,8 +1,10 @@
 # 🏃 TrackStat
 
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Version](https://img.shields.io/github/v/tag/invercity/trackstat?label=version&color=blue)](https://github.com/invercity/trackstat/releases)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![CI](https://github.com/invercity/trackstat/actions/workflows/ci.yml/badge.svg)](https://github.com/invercity/trackstat/actions/workflows/ci.yml)
 
-Modern athletics platform for result tracking, statistics, official rankings, relay squad selection, and sports school management.
+Modern athletics platform for result tracking, statistics, official rankings, relay squad selection, protocol imports, and sports school management.
 
 **Tech Stack:**
 - **Backend:** NestJS 12, Mongoose 9, MongoDB (`apps/api`)
@@ -36,8 +38,9 @@ Modern athletics platform for result tracking, statistics, official rankings, re
 - Competition level categorization: **City**, **Regional**, **National**, **International**.
 - Competitions grouped by month (e.g., September, May) sorted chronologically.
 - Competition details ([`/competitions/:id`](http://localhost:3010/competitions)):
+  - Gender separation for Men and Women in all disciplines with interactive gender toggle.
+  - Heats and qualification rounds consistently displayed before finals.
   - Breakdown by age categories (U16, U18, U20, U21, U23, Adults) and absolute standings.
-  - Separation of heats and finals for track disciplines.
   - Results per discipline with timing type (manual/electronic), rank, and WA points.
 
 ### 4. 📊 Results & Records Leaderboard ([`/results`](http://localhost:3010/results))
@@ -70,7 +73,11 @@ Intelligent squad selection module for regional relay teams:
   - Leg descriptions and tactical roles.
   - Ranked reserves list (up to 3 candidate contenders per leg with personal bests).
 
-### 7. 🏅 National Standards & World Athletics Scoring
+### 7. 📥 Automated Protocol & Web Import
+- **Protocol File Import ([`/admin/import`](http://localhost:3010/admin/import)):** upload `.docx`, `.doc`, or `.txt` official protocols with automatic parsing of athlete names, birth dates, age categories, results, timing, and schools.
+- **Web Import ([`/admin/import-web`](http://localhost:3010/admin/import-web)):** direct integration with [uar.com.ua](https://uar.com.ua) for official Ukrainian Championships and Cups, with regional filtering and selective import.
+
+### 8. 🏅 National Standards & World Athletics Scoring
 - **Ukrainian Sport Ranks (ESKU):** automated standard verification (MSMC, MS, CMS, 1st, 2nd, 3rd, youth ranks) with manual timing conversion adjustments (+0.24s).
 - **World Athletics (IAAF) Scoring:** points calculation using official scoring polynomial formulas across all track and field disciplines.
 
@@ -78,10 +85,12 @@ Intelligent squad selection module for regional relay teams:
 
 ## 🛠️ Admin Panel ([`/admin`](http://localhost:3010/admin))
 
-All core system entities feature full CRUD support:
+All core system entities feature full CRUD and import capabilities:
 
 | Section | Capabilities |
 |---|---|
+| **Protocol Import** (`/admin/import`) | Upload `.docx` / `.txt` competition protocols with automatic extraction, preview, school resolution, and database commit. |
+| **Web Import** (`/admin/import-web`) | Sync results directly from federation website (UAR) filtered by region and year. |
 | **Athletes** (`/admin/athletes`) | Last name, first name, middle name, birth date, gender, coaches (tags), **sports school linkage (select)**, club, region, notes. |
 | **Sports Schools** (`/admin/schools`) | Full school/club name, abbreviation, city, region, notes. |
 | **Competitions** (`/admin/competitions`) | Title, **competition level (City, Regional, National, International)**, start and end dates, location, season, age categories, disciplines list. |

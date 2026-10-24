@@ -16,6 +16,7 @@ import {
 import State from '@/components/State';
 import CategoryBadge from '@/components/ui/CategoryBadge';
 import GenderBadge from '@/components/ui/GenderBadge';
+import PageHeader from '@/components/ui/PageHeader';
 import { useFetch } from '@/lib/api';
 import { formatValue, fullName } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
@@ -55,132 +56,132 @@ export default function RelaysPage() {
   return (
     <>
       {/* Page Header */}
-      <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
-        <div>
-          <h1 className="h2 mb-1 d-flex align-items-center gap-2">
-            <span>🏃‍♂️</span>
+      <PageHeader
+        icon="🏃‍♂️"
+        title={
+          <div className="d-flex align-items-center gap-2">
             <span>{t('relays.title')}</span>
             <button
               type="button"
-              className="btn btn-sm btn-outline-warning border-0 p-1 ms-1 text-decoration-none"
+              className="btn btn-sm btn-outline-warning border-0 p-1 text-decoration-none"
               style={{ fontSize: '1.25rem', lineHeight: 1 }}
               title="Принципи формування складу"
               onClick={() => setShowRulesModal(true)}
             >
               💡
             </button>
-          </h1>
-          <p className="text-muted mb-0">{t('relays.subtitle')}</p>
-        </div>
+          </div>
+        }
+        subtitle={t('relays.subtitle')}
+        actions={
+          <div className="d-flex flex-wrap gap-2 align-items-center">
+            <ButtonGroup size="sm">
+              <ToggleButton
+                id="cat-all"
+                type="radio"
+                variant="outline-secondary"
+                name="category"
+                value="ALL"
+                checked={selectedCategory === 'ALL'}
+                onChange={(e) => setSelectedCategory(e.currentTarget.value)}
+              >
+                {t('relays.allCategories')}
+              </ToggleButton>
+              <ToggleButton
+                id="cat-u16"
+                type="radio"
+                variant="outline-info"
+                name="category"
+                value="U16"
+                checked={selectedCategory === 'U16'}
+                onChange={(e) => setSelectedCategory(e.currentTarget.value)}
+              >
+                U16
+              </ToggleButton>
+              <ToggleButton
+                id="cat-u18"
+                type="radio"
+                variant="outline-primary"
+                name="category"
+                value="U18"
+                checked={selectedCategory === 'U18'}
+                onChange={(e) => setSelectedCategory(e.currentTarget.value)}
+              >
+                U18
+              </ToggleButton>
+              <ToggleButton
+                id="cat-u21"
+                type="radio"
+                variant="outline-warning"
+                name="category"
+                value="U21"
+                checked={selectedCategory === 'U21'}
+                onChange={(e) => setSelectedCategory(e.currentTarget.value)}
+              >
+                U21
+              </ToggleButton>
+              <ToggleButton
+                id="cat-u23"
+                type="radio"
+                variant="outline-warning"
+                name="category"
+                value="U23"
+                checked={selectedCategory === 'U23'}
+                onChange={(e) => setSelectedCategory(e.currentTarget.value)}
+              >
+                U23
+              </ToggleButton>
+              <ToggleButton
+                id="cat-adult"
+                type="radio"
+                variant="outline-success"
+                name="category"
+                value="ADULT"
+                checked={selectedCategory === 'ADULT'}
+                onChange={(e) => setSelectedCategory(e.currentTarget.value)}
+              >
+                {t('cat.ADULT')}
+              </ToggleButton>
+            </ButtonGroup>
 
-        {/* Filter controls */}
-        <div className="d-flex flex-wrap gap-2 align-items-center">
-          <ButtonGroup size="sm">
-            <ToggleButton
-              id="cat-all"
-              type="radio"
-              variant="outline-secondary"
-              name="category"
-              value="ALL"
-              checked={selectedCategory === 'ALL'}
-              onChange={(e) => setSelectedCategory(e.currentTarget.value)}
-            >
-              {t('relays.allCategories')}
-            </ToggleButton>
-            <ToggleButton
-              id="cat-u16"
-              type="radio"
-              variant="outline-info"
-              name="category"
-              value="U16"
-              checked={selectedCategory === 'U16'}
-              onChange={(e) => setSelectedCategory(e.currentTarget.value)}
-            >
-              U16
-            </ToggleButton>
-            <ToggleButton
-              id="cat-u18"
-              type="radio"
-              variant="outline-primary"
-              name="category"
-              value="U18"
-              checked={selectedCategory === 'U18'}
-              onChange={(e) => setSelectedCategory(e.currentTarget.value)}
-            >
-              U18
-            </ToggleButton>
-            <ToggleButton
-              id="cat-u21"
-              type="radio"
-              variant="outline-warning"
-              name="category"
-              value="U21"
-              checked={selectedCategory === 'U21'}
-              onChange={(e) => setSelectedCategory(e.currentTarget.value)}
-            >
-              U21
-            </ToggleButton>
-            <ToggleButton
-              id="cat-u23"
-              type="radio"
-              variant="outline-warning"
-              name="category"
-              value="U23"
-              checked={selectedCategory === 'U23'}
-              onChange={(e) => setSelectedCategory(e.currentTarget.value)}
-            >
-              U23
-            </ToggleButton>
-            <ToggleButton
-              id="cat-adult"
-              type="radio"
-              variant="outline-success"
-              name="category"
-              value="ADULT"
-              checked={selectedCategory === 'ADULT'}
-              onChange={(e) => setSelectedCategory(e.currentTarget.value)}
-            >
-              {t('cat.ADULT')}
-            </ToggleButton>
-          </ButtonGroup>
-
-          <ButtonGroup size="sm">
-            <ToggleButton
-              id="gen-all"
-              type="radio"
-              variant="outline-secondary"
-              name="gender"
-              value="ALL"
-              checked={selectedGender === 'ALL'}
-              onChange={(e) => setSelectedGender(e.currentTarget.value)}
-            >
-              {t('relays.allGenders')}
-            </ToggleButton>
-            <ToggleButton
-              id="gen-m"
-              type="radio"
-              variant="outline-primary"
-              name="gender"
-              value="M"
-              checked={selectedGender === 'M'}
-              onChange={(e) => setSelectedGender(e.currentTarget.value)}
-            >
-              {t('f.M')}
-            </ToggleButton>
-            <ToggleButton
-              id="gen-f"
-              type="radio"
-              variant="outline-danger"
-              name="gender"
-              value="F"
-              checked={selectedGender === 'F'}
-              onChange={(e) => setSelectedGender(e.currentTarget.value)}
-            >
-              {t('f.F')}
-            </ToggleButton>
-          </ButtonGroup>
-        </div>
-      </div>
+            <ButtonGroup size="sm">
+              <ToggleButton
+                id="gen-all"
+                type="radio"
+                variant="outline-secondary"
+                name="gender"
+                value="ALL"
+                checked={selectedGender === 'ALL'}
+                onChange={(e) => setSelectedGender(e.currentTarget.value)}
+              >
+                {t('relays.allGenders')}
+              </ToggleButton>
+              <ToggleButton
+                id="gen-m"
+                type="radio"
+                variant="outline-primary"
+                name="gender"
+                value="M"
+                checked={selectedGender === 'M'}
+                onChange={(e) => setSelectedGender(e.currentTarget.value)}
+              >
+                {t('f.M')}
+              </ToggleButton>
+              <ToggleButton
+                id="gen-f"
+                type="radio"
+                variant="outline-danger"
+                name="gender"
+                value="F"
+                checked={selectedGender === 'F'}
+                onChange={(e) => setSelectedGender(e.currentTarget.value)}
+              >
+                {t('f.F')}
+              </ToggleButton>
+            </ButtonGroup>
+          </div>
+        }
+      />
 
       {/* Main Content State */}
       <State loading={loading} error={error} empty={filteredSquads.length === 0}>

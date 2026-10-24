@@ -15,6 +15,7 @@ import {
 } from 'react-bootstrap';
 import State from '@/components/State';
 import BackButton from '@/components/ui/BackButton';
+import PageHeader from '@/components/ui/PageHeader';
 import { useFetch } from '@/lib/api';
 import { formatValue, fullName } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
@@ -65,27 +66,21 @@ export default function RelayDetailsPage() {
         {squad && (
           <div>
             {/* Header section */}
-            <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
-              <div>
-                <div className="d-flex align-items-center gap-2 mb-1">
-                  <span className="fs-3">{squad.gender === 'M' ? '🏃‍♂️' : '🏃‍♀️'}</span>
-                  <h1 className="h2 mb-0 fw-bold">{squad.title}</h1>
+            <PageHeader
+              icon={squad.gender === 'M' ? '🏃‍♂️' : '🏃‍♀️'}
+              title={squad.title}
+              subtitle={`${t('relays.detailsTitle')} • ${squad.category === 'ADULT' ? t('cat.ADULT') : squad.category} • ${squad.gender === 'M' ? t('f.M') : t('f.F')}`}
+              actions={
+                <div className="d-flex align-items-center gap-2">
+                  <Badge bg={getCategoryBadgeVariant(squad.category)} className="fs-6 px-3 py-2">
+                    {squad.category === 'ADULT' ? t('cat.ADULT') : squad.category}
+                  </Badge>
+                  <Badge bg={squad.gender === 'M' ? 'primary' : 'danger'} className="fs-6 px-3 py-2">
+                    {squad.gender === 'M' ? t('f.M') : t('f.F')}
+                  </Badge>
                 </div>
-                <div className="text-muted">
-                  {t('relays.detailsTitle')} • {squad.category === 'ADULT' ? t('cat.ADULT') : squad.category} •{' '}
-                  {squad.gender === 'M' ? t('f.M') : t('f.F')}
-                </div>
-              </div>
-
-              <div className="d-flex align-items-center gap-2">
-                <Badge bg={getCategoryBadgeVariant(squad.category)} className="fs-6 px-3 py-2">
-                  {squad.category === 'ADULT' ? t('cat.ADULT') : squad.category}
-                </Badge>
-                <Badge bg={squad.gender === 'M' ? 'primary' : 'danger'} className="fs-6 px-3 py-2">
-                  {squad.gender === 'M' ? t('f.M') : t('f.F')}
-                </Badge>
-              </div>
-            </div>
+              }
+            />
 
             {/* Mode switcher for Swedish Relay */}
             {(() => {
