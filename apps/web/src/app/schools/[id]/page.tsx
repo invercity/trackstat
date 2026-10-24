@@ -15,6 +15,7 @@ import {
 import AthletesTable from '@/components/athletes/AthletesTable';
 import State from '@/components/State';
 import BackButton from '@/components/ui/BackButton';
+import PageHeader from '@/components/ui/PageHeader';
 import { useFetch } from '@/lib/api';
 import { useI18n } from '@/lib/i18n';
 import type { Athlete, School } from '@/lib/types';
@@ -69,31 +70,31 @@ export default function SchoolDetailPage() {
             {/* School Header Card */}
             <Card className="mb-4 shadow-sm border-0 bg-white">
               <Card.Body className="p-4">
-                <div className="d-flex flex-wrap justify-content-between align-items-start gap-3">
-                  <div>
-                    <div className="d-flex align-items-center gap-2 mb-1">
-                      <span style={{ fontSize: '2rem' }}>🏫</span>
-                      <h1 className="h3 mb-0">{school.name}</h1>
-                    </div>
-                    {school.shortName && school.shortName !== school.name && (
-                      <div className="text-muted fs-6 mb-2">{school.shortName}</div>
-                    )}
-                    <div className="text-muted d-flex flex-wrap align-items-center gap-2">
-                      {school.city && (
-                        <span>
-                          📍 <strong>{school.city}</strong>
-                        </span>
+                <PageHeader
+                  icon="🏫"
+                  title={school.name}
+                  subtitle={
+                    <div>
+                      {school.shortName && school.shortName !== school.name && (
+                        <div className="text-muted fs-6 mb-1">{school.shortName}</div>
                       )}
-                      {school.region && <span>· {school.region}</span>}
+                      <div className="text-muted d-flex flex-wrap align-items-center gap-2">
+                        {school.city && (
+                          <span>
+                            📍 <strong>{school.city}</strong>
+                          </span>
+                        )}
+                        {school.region && <span>· {school.region}</span>}
+                      </div>
                     </div>
-                  </div>
-
-                  <div className="text-end">
+                  }
+                  actions={
                     <Badge bg="primary" className="fs-6 px-3 py-2">
                       {athletes.length} {t('school.athletesCount')}
                     </Badge>
-                  </div>
-                </div>
+                  }
+                  className="mb-0"
+                />
 
                 {school.notes && (
                   <div className="mt-3 p-3 bg-light rounded text-secondary">

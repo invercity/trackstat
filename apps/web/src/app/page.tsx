@@ -5,6 +5,7 @@ import { Badge, Card, Col, Row, Table } from 'react-bootstrap';
 import State from '@/components/State';
 import CategoryBadge from '@/components/ui/CategoryBadge';
 import MarkDisplay from '@/components/ui/MarkDisplay';
+import PageHeader from '@/components/ui/PageHeader';
 import { useFetch } from '@/lib/api';
 import { formatDate, fullName } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
@@ -82,14 +83,16 @@ export default function HomePage() {
 
   return (
     <>
-      <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
-        <div>
-          <h1 className="h3 mb-1">🏃 {t('home.title')}</h1>
-        </div>
-        <Link href="/competitions" className="btn btn-outline-secondary btn-sm">
-          Усі змагання →
-        </Link>
-      </div>
+      <PageHeader
+        icon="🏃"
+        title={t('home.title')}
+        subtitle="Огляд останніх змагань та кращих виступів легкоатлетів"
+        actions={
+          <Link href="/competitions" className="btn btn-outline-secondary btn-sm">
+            Усі змагання →
+          </Link>
+        }
+      />
 
       <State loading={overview.loading} error={overview.error} empty={overview.data?.length === 0}>
         {overview.data?.map((comp) => (

@@ -7,6 +7,7 @@ import State from '@/components/State';
 import BackButton from '@/components/ui/BackButton';
 import CategoryBadge from '@/components/ui/CategoryBadge';
 import MarkDisplay from '@/components/ui/MarkDisplay';
+import PageHeader from '@/components/ui/PageHeader';
 import SchoolLink from '@/components/ui/SchoolLink';
 import { useFetch } from '@/lib/api';
 import { formatDate, fullName } from '@/lib/format';
@@ -57,14 +58,18 @@ export default function AthletePage() {
           <>
             <Card className="mb-4">
               <Card.Body>
-                <h1 className="h3 d-flex align-items-center gap-2">
-                  <span>{fullName(a)}</span>
-                  <CategoryBadge category={a.ageCategory} />
-                </h1>
-                <div className="text-muted">
-                  {formatDate(a.birthDate)} · {t('a.age')}: {age(a.birthDate)} · {t(`f.${a.gender}`)}
-                  {a.region && ` · ${a.region}`}
-                </div>
+                <PageHeader
+                  icon="👤"
+                  title={fullName(a)}
+                  badge={<CategoryBadge category={a.ageCategory} />}
+                  subtitle={
+                    <div>
+                      {formatDate(a.birthDate)} · {t('a.age')}: {age(a.birthDate)} · {t(`f.${a.gender}`)}
+                      {a.region && ` · ${a.region}`}
+                    </div>
+                  }
+                  className="mb-2"
+                />
                 {a.school ? (
                   <div className="mt-1">
                     <span className="text-muted">{t('f.school')}: </span>

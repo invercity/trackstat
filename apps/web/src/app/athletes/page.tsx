@@ -6,6 +6,7 @@ import { Suspense, useEffect, useMemo, useState } from 'react';
 import { Alert, Badge, Button, Form } from 'react-bootstrap';
 import AthletesTable from '@/components/athletes/AthletesTable';
 import State from '@/components/State';
+import PageHeader from '@/components/ui/PageHeader';
 import PaginationControl from '@/components/ui/PaginationControl';
 import { useFetch } from '@/lib/api';
 import { useI18n } from '@/lib/i18n';
@@ -78,39 +79,42 @@ function AthletesListContent() {
 
   return (
     <>
-      <div className="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
-        <div>
-          <h1 className="h3 m-0">{t('nav.athletes')}</h1>
-          {total > 0 && (
-            <small className="text-muted">
-              {t('p.showing')} {from}–{to} {t('p.of')} {total}
-            </small>
-          )}
-        </div>
-        <div className="d-flex flex-wrap gap-2" style={{ maxWidth: 620, width: '100%' }}>
-          <Form.Select
-            style={{ maxWidth: 280 }}
-            value={selectedSchoolId}
-            onChange={(e) => {
-              setSelectedSchoolId(e.target.value);
-              setPage(1);
-            }}
-          >
-            <option value="">{t('school.allSchools')}</option>
-            {schools?.map((s) => (
-              <option key={s._id} value={s._id}>
-                {s.name} {s.athleteCount !== undefined ? `(${s.athleteCount})` : ''}
-              </option>
-            ))}
-          </Form.Select>
-          <Form.Control
-            style={{ minWidth: 200, flex: 1 }}
-            placeholder={t('common.search')}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-      </div>
+      <PageHeader
+        icon="👤"
+        title={t('nav.athletes')}
+        subtitle={
+          total > 0
+            ? `${t('p.showing')} ${from}–${to} ${t('p.of')} ${total}`
+            : (loading ? 'Завантаження списку…' : undefined)
+        }
+        actions={
+          <div className="d-flex flex-wrap gap-2" style={{ maxWidth: 620, width: '100%' }}>
+            <Form.Select
+              size="sm"
+              style={{ maxWidth: 280 }}
+              value={selectedSchoolId}
+              onChange={(e) => {
+                setSelectedSchoolId(e.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="">{t('school.allSchools')}</option>
+              {schools?.map((s) => (
+                <option key={s._id} value={s._id}>
+                  {s.name} {s.athleteCount !== undefined ? `(${s.athleteCount})` : ''}
+                </option>
+              ))}
+            </Form.Select>
+            <Form.Control
+              size="sm"
+              style={{ minWidth: 200, flex: 1 }}
+              placeholder={t('common.search')}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+        }
+      />
 
       {currentSchool && (
         <Alert variant="info" className="d-flex flex-wrap justify-content-between align-items-center py-2 px-3 mb-3 gap-2 shadow-sm">
@@ -169,7 +173,21 @@ function AthletesListContent() {
 
 export default function AthletesPage() {
   return (
-    <Suspense fallback={<div className="text-muted py-4">Завантаження…</div>}>
+    <Suspense
+      fallback={
+        <>
+          <PageHeader
+            icon="👤"
+            title="Спортсмени"
+            subtitle="Завантаження списку…"
+          />
+          <div className="text-center py-5 text-muted">
+            <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />
+            Завантаження даних…
+          </div>
+        </>
+      }
+    >
       <AthletesListContent />
     </Suspense>
   );

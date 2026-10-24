@@ -1,14 +1,29 @@
-import { Controller, Get, NotFoundException, Param, Query } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  Post,
+  Query,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { CrudController } from '../common/crud';
 import {
   AthletesService,
   CompetitionsService,
   DisciplinesService,
+  ProtocolCommitPayload,
+  ProtocolImporterService,
   RankingsService,
   RelaysService,
   ResultsService,
   SchoolsService,
   SeasonsService,
+  WebImporterService,
 } from './services';
 
 @Controller('disciplines')
@@ -132,5 +147,70 @@ export class RankingsController {
     return this.rankings.getSchoolRankingDetails(id, year || seasonId);
   }
 }
+
+@Controller('protocol-import')
+export class ProtocolImportController {
+  constructor(private readonly importer: ProtocolImporterService) {}
+
+  @Post('preview')
+  @UseInterceptors(FileInterceptor('file'))
+  async preview(@UploadedFile() file: { originalname: string; buffer: Buffer; mimetype?: string }) {
+    if (!file || !file.buffer) {
+      throw new BadRequestException('Будь ласка, завантажте файл протоколу (.docx або .txt)');
+    }
+    return this.importer.preview(file.buffer, file.originalname);
+  }
+
+  @Post('commit')
+  async commit(@Body() payload: ProtocolCommitPayload) {
+    return this.importer.commit(payload);
+  }
+}
+
+@Controller('web-import')
+export class WebImportController {
+  constructor(private readonly webImporter: WebImporterService) {}
+
+  @Get('integrations')
+  getIntegrations() {
+    return this.webImporter.getIntegrations();
+  }
+
+  @Get(':integrationId/years')
+  async getYears(@Param('integrationId') integrationId: string) {
+    return this.webImporter.getYears(integrationId);
+  }
+
+  @Get(':integrationId/competitions')
+  async getCompetitions(
+    @Param('integrationId') integrationId: string,
+    @Query('year') year?: string,
+  ) {
+    const seasonYear = year ? parseInt(year, 10) : new Date().getFullYear();
+    return this.webImporter.getCompetitions(integrationId, seasonYear);
+  }
+
+  @Get(':integrationId/competitions/:compId/preview')
+  async previewCompetitionResults(
+    @Param('integrationId') integrationId: string,
+    @Param('compId') compId: string,
+    @Query('year') year?: string,
+    @Query('region') region?: string,
+  ) {
+    const seasonYear = year ? parseInt(year, 10) : new Date().getFullYear();
+    return this.webImporter.previewCompetitionResults(
+      integrationId,
+      compId,
+      seasonYear,
+      region ?? 'Чернігівська',
+    );
+  }
+
+  @Post('commit')
+  async commit(@Body() payload: ProtocolCommitPayload) {
+    return this.webImporter.commit(payload);
+  }
+}
+
 
 

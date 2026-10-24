@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { Badge, Button, Card, Col, Container, Form, Row } from 'react-bootstrap';
 import State from '@/components/State';
+import PageHeader from '@/components/ui/PageHeader';
 import { useFetch } from '@/lib/api';
 import { useI18n } from '@/lib/i18n';
 import type { School } from '@/lib/types';
@@ -49,17 +50,16 @@ export default function SchoolsPage() {
 
   return (
     <>
-      <div className="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
-        <div>
-          <h1 className="h3 mb-1">🏫 {t('school.title')}</h1>
-          <p className="text-muted mb-0">{t('school.subtitle')}</p>
-        </div>
-        <div className="d-flex align-items-center gap-2">
-          <Link href="/rankings" className="btn btn-outline-warning">
+      <PageHeader
+        icon="🏫"
+        title={t('school.title')}
+        subtitle={t('school.subtitle')}
+        actions={
+          <Link href="/rankings" className="btn btn-outline-warning btn-sm fw-semibold">
             🏆 {t('nav.rankings')}
           </Link>
-        </div>
-      </div>
+        }
+      />
 
       {/* Filter and stats row */}
       <Card className="mb-4 shadow-sm border-0 bg-white">
