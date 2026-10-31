@@ -171,7 +171,7 @@ export class RankingsService {
     );
 
     // Calculate school rankings
-    const allSchools = await this.schools.find().lean();
+    const allSchools = await this.schools.find({ name: { $not: /особист/i } }).lean();
     const schoolMap = new Map<string, any>();
     for (const s of allSchools) {
       schoolMap.set(String(s._id), {

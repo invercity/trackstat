@@ -153,7 +153,7 @@ export function getDisciplineSortWeight(name?: string | null): number {
 
   if (t.includes('крос') || t.includes('cross')) {
     const kmMatch = t.match(/(\d+)\s*(?:км|km)/);
-    return 90 + (kmMatch ? parseInt(kmMatch[1], 10) : 5);
+    return 600 + (kmMatch ? parseInt(kmMatch[1], 10) : 5);
   }
 
   const mMatch = t.match(/(?:^|\D)(\d+)\s*(?:м|m)(?:$|[^а-яіїєґa-z])/i);

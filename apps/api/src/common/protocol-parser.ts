@@ -276,10 +276,10 @@ export function getDisciplineSortWeight(name?: string | null): number {
     return 165;
   }
 
-  // 6. Cross-country / Road (90+)
+  // 6. Cross-country / Non-stadium (600+, after all stadium disciplines)
   if (t.includes('крос')) {
     const kmMatch = t.match(/(\d+)\s*км/);
-    return 90 + (kmMatch ? parseInt(kmMatch[1], 10) : 5);
+    return 600 + (kmMatch ? parseInt(kmMatch[1], 10) : 5);
   }
 
   // 7. Flat track running (1..89): extract distance in meters

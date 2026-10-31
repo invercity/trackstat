@@ -126,8 +126,9 @@ describe('protocol-parser', () => {
   });
 
   describe('compareDisciplineNames', () => {
-    it('sorts disciplines in official athletic order (60 -> 100 -> 200 -> 400 -> 800 -> 1500 -> 3000 -> hurdles -> jumps -> throws -> relays)', () => {
+    it('sorts disciplines in official athletic order (stadium events first, then cross-country at the end)', () => {
       const unordered = [
+        'Крос 4 км',
         'Естафета 4х400 м',
         '800 м',
         '100 м',
@@ -153,6 +154,7 @@ describe('protocol-parser', () => {
         'Стрибки у довжину',
         'Штовхання ядра',
         'Естафета 4х400 м',
+        'Крос 4 км',
       ]);
     });
   });

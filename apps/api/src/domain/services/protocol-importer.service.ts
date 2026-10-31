@@ -216,7 +216,9 @@ export class ProtocolImporterService {
       let schoolDoc: any = null;
       if (r.teamStr) {
         const resolved = resolveSchool(r.teamStr);
-        schoolDoc = schoolMap.get(resolved.name.toLowerCase());
+        if (resolved) {
+          schoolDoc = schoolMap.get(resolved.name.toLowerCase());
+        }
       }
 
       // Athlete Name & Match

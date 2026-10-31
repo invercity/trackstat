@@ -25,14 +25,28 @@ export const SCHOOL_RULES: [string, string, string[]][] = [
   ['Чернігів, НГУ', 'Чернігів', ['нгу']],
   ['Київська область', 'Київська обл.', ['київська обл']],
   ['м.Київ', 'Київ', ['м.київ']],
-  ['Особисто (Чернігів)', 'Чернігів', ['особисто', 'чернігів']],
 ];
 
-export function resolveSchool(club?: string): { name: string; city: string } {
+const NON_SCHOOL_LABELS = new Set([
+  'особисто',
+  'особ.',
+  'особ',
+  'чернігівська',
+  'чернігівська обл.',
+  'чернігівська область',
+  'чернігів',
+  'м.чернігів',
+  'м. чернігів',
+]);
+
+export function resolveSchool(club?: string): { name: string; city: string } | null {
   if (!club || !club.trim()) {
-    return { name: 'Особисто', city: '' };
+    return null;
   }
-  const cLow = club.toLowerCase();
+  const cLow = club.toLowerCase().replace(/\s+/g, ' ').trim();
+  if (NON_SCHOOL_LABELS.has(cLow) || /особист|особ\b/i.test(cLow)) {
+    return null;
+  }
   for (const [name, city, keywords] of SCHOOL_RULES) {
     if (keywords.some((kw) => cLow.includes(kw))) {
       return { name, city };
