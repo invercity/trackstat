@@ -19,7 +19,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className="bg-light min-vh-100 d-flex flex-column">
         <I18nProvider>
           <AppNavbar />
-          <main className="container py-4 flex-grow-1">{children}</main>
+          <main className="container py-4 flex-grow-1" style={{ minWidth: 0, maxWidth: '100%' }}>{children}</main>
           <footer className="py-2 mt-auto text-center text-muted small">
             <div className="container">
               <a href="mailto:yermolenko.ua@gmail.com" className="text-decoration-none text-secondary fw-semibold">

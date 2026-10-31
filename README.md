@@ -150,7 +150,7 @@ npm run build
 
 ## 🔄 CI / CD (GitHub Actions)
 
-Three automated workflows configured in [`.github/workflows`](.github/workflows):
+Automated workflows configured in [`.github/workflows`](.github/workflows):
 
 1. **`ci.yml` (CI — Build & Test):**  
    Triggered on push to `main`, `master`, `feat/**`, and pull requests.  
@@ -166,6 +166,12 @@ Three automated workflows configured in [`.github/workflows`](.github/workflows)
    - `fix:` or `fix(...)` ➔ **patch version bump** (e.g., `v1.0.0` ➔ `v1.0.1`).
    - `BREAKING CHANGE` or `!:` ➔ **major version bump** (e.g., `v1.0.0` ➔ `v2.0.0`).
    - Automatically generates release notes on GitHub.
+
+4. **`deploy.yml` (CD — Google Cloud Run Deployment):**  
+   Automated serverless deployment to Google Cloud Run with zero-cost optimization:
+   - Multi-stage Docker builds on GitHub-hosted runners (no Cloud Build minutes consumed).
+   - Independent deployment of API and Web services with auto-scaling to zero (`min-instances: 0`).
+   - Automatic cleanup of older untagged container images to stay strictly within the 0.5 GB Artifact Registry free tier.
 
 ---
 
