@@ -1,0 +1,152 @@
+name: Deploy to Google Cloud Run
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Сервіс для деплою (all / api / web)'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - api
+          - web
+  push:
+    branches:
+      - master
+      - main
+    paths-ignore:
+      - 'README.md'
+      - 'LICENSE'
+      - '.gitignore'
+
+env:
+  GCP_REGION: ${{ vars.GCP_REGION || 'europe-west3' }}
+  GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+  ARTIFACT_REPO: trackstat
+
+jobs:
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || !startsWith(github.event.head_commit.message, 'chore(release):')
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Configure Docker authentication for Artifact Registry
+        run: |
+          gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # --- 1. BUILD & DEPLOY API ---
+      - name: Build and push API Docker image
+        if: github.event_name != 'workflow_dispatch' || inputs.target == 'all' || inputs.target == 'api'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          push: true
+          tags: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/api:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Deploy API to Cloud Run
+        if: github.event_name != 'workflow_dispatch' || inputs.target == 'all' || inputs.target == 'api'
+        env:
+          RAW_MONGO_URI: ${{ secrets.MONGO_URI }}
+          RAW_JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          RAW_ADMIN_USER: ${{ secrets.ADMIN_USERNAME }}
+          RAW_ADMIN_PASS: ${{ secrets.ADMIN_PASSWORD }}
+        run: |
+          if [ -z "$RAW_MONGO_URI" ]; then
+            echo "::error::Secret MONGO_URI is missing or empty in GitHub Secrets! Please add MONGO_URI to Settings -> Secrets."
+            exit 1
+          fi
+
+          JWT_SECRET="${RAW_JWT_SECRET:-prod-secret-trackstat-jwt}"
+          ADMIN_USERNAME="${RAW_ADMIN_USER:-admin}"
+          ADMIN_PASSWORD="${RAW_ADMIN_PASS:-admin}"
+
+          echo "Deploying trackstat-api to Cloud Run..."
+          gcloud run deploy trackstat-api \
+            --image "${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/api:latest" \
+            --region "${{ env.GCP_REGION }}" \
+            --platform managed \
+            --allow-unauthenticated \
+            --min-instances 0 \
+            --max-instances 2 \
+            --concurrency 80 \
+            --memory 512Mi \
+            --cpu 1 \
+            --cpu-throttling \
+            --set-env-vars "^##^MONGO_URI=${RAW_MONGO_URI}##JWT_SECRET=${JWT_SECRET}##ADMIN_USERNAME=${ADMIN_USERNAME}##ADMIN_PASSWORD=${ADMIN_PASSWORD}" \
+            --quiet
+
+      - name: Fetch API Service URL
+        if: github.event_name != 'workflow_dispatch' || inputs.target == 'all' || inputs.target == 'web'
+        id: api_url
+        run: |
+          API_URL=$(gcloud run services describe trackstat-api --region "${{ env.GCP_REGION }}" --format 'value(status.url)')
+          echo "Found API URL: $API_URL"
+          echo "API_URL=$API_URL" >> $GITHUB_ENV
+
+      # --- 2. BUILD & DEPLOY WEB ---
+      - name: Build and push Web Docker image
+        if: github.event_name != 'workflow_dispatch' || inputs.target == 'all' || inputs.target == 'web'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/web/Dockerfile
+          push: true
+          tags: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/web:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Deploy Web to Cloud Run
+        if: github.event_name != 'workflow_dispatch' || inputs.target == 'all' || inputs.target == 'web'
+        run: |
+          gcloud run deploy trackstat-web \
+            --image "${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/web:latest" \
+            --region "${{ env.GCP_REGION }}" \
+            --platform managed \
+            --allow-unauthenticated \
+            --min-instances 0 \
+            --max-instances 2 \
+            --concurrency 80 \
+            --memory 512Mi \
+            --cpu 1 \
+            --cpu-throttling \
+            --set-env-vars "API_URL=${{ env.API_URL }}" \
+            --quiet
+
+      # --- 3. STORAGE CLEANUP (Guarantee 0$ Artifact Registry Storage) ---
+      - name: Clean up untagged old images (Keep storage under 0.5 GB Free Tier)
+        if: always()
+        run: |
+          echo "Cleaning up dangling images from Artifact Registry..."
+          for component in api web; do
+            IMAGE_REPO="${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/$component"
+            DIGESTS=$(gcloud artifacts docker images list "$IMAGE_REPO" --filter="NOT tags:*" --format="get(digest)" 2>/dev/null || true)
+            for digest in $DIGESTS; do
+              if [ -n "$digest" ]; then
+                echo "Deleting untagged image: $IMAGE_REPO@$digest"
+                gcloud artifacts docker images delete "$IMAGE_REPO@$digest" --delete-tags --quiet || true
+              fi
+            done
+          done
+          echo "Cleanup complete. Only :latest images remain."

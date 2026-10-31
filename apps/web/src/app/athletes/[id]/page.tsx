@@ -100,7 +100,6 @@ export default function AthletePage() {
                     <thead>
                       <tr>
                         <th>{t('f.discipline')}</th>
-                        <th>{t('a.overall')}</th>
                         <th>{t('a.outdoor')}</th>
                         <th>{t('a.indoor')}</th>
                       </tr>
@@ -109,7 +108,6 @@ export default function AthletePage() {
                       {stats.data?.personalBests.map((pb) => (
                         <tr key={pb.discipline._id}>
                           <td>{dName(pb.discipline)}</td>
-                          <td><MarkCell m={pb.overall} type={pb.discipline.type} /></td>
                           <td><MarkCell m={pb.outdoor} type={pb.discipline.type} /></td>
                           <td><MarkCell m={pb.indoor} type={pb.discipline.type} /></td>
                         </tr>

@@ -173,8 +173,8 @@ export default function CompetitionsPage() {
           </div>
 
           {/* Level Filter */}
-          <div className="d-flex align-items-center gap-1">
-            <ButtonGroup size="sm">
+          <div className="d-flex align-items-center gap-1 flex-wrap" style={{ maxWidth: '100%' }}>
+            <ButtonGroup size="sm" className="d-none d-md-inline-flex">
               <ToggleButton
                 id="level-all"
                 type="radio"
@@ -231,15 +231,82 @@ export default function CompetitionsPage() {
                 {t('level.international')}
               </ToggleButton>
             </ButtonGroup>
+            <div className="d-flex d-md-none flex-wrap gap-1">
+              <ToggleButton
+                id="m-level-all"
+                type="radio"
+                variant={selectedLevel === 'ALL' ? 'secondary' : 'outline-secondary'}
+                name="m-level"
+                value="ALL"
+                checked={selectedLevel === 'ALL'}
+                onChange={(e) => setSelectedLevel(e.currentTarget.value)}
+                size="sm"
+                className="rounded-pill px-2"
+              >
+                {t('level.all')}
+              </ToggleButton>
+              <ToggleButton
+                id="m-level-city"
+                type="radio"
+                variant={selectedLevel === 'city' ? 'secondary' : 'outline-secondary'}
+                name="m-level"
+                value="city"
+                checked={selectedLevel === 'city'}
+                onChange={(e) => setSelectedLevel(e.currentTarget.value)}
+                size="sm"
+                className="rounded-pill px-2"
+              >
+                {t('level.city')}
+              </ToggleButton>
+              <ToggleButton
+                id="m-level-reg"
+                type="radio"
+                variant={selectedLevel === 'regional' ? 'info' : 'outline-info'}
+                name="m-level"
+                value="regional"
+                checked={selectedLevel === 'regional'}
+                onChange={(e) => setSelectedLevel(e.currentTarget.value)}
+                size="sm"
+                className="rounded-pill px-2"
+              >
+                {t('level.regional')}
+              </ToggleButton>
+              <ToggleButton
+                id="m-level-nat"
+                type="radio"
+                variant={selectedLevel === 'national' ? 'primary' : 'outline-primary'}
+                name="m-level"
+                value="national"
+                checked={selectedLevel === 'national'}
+                onChange={(e) => setSelectedLevel(e.currentTarget.value)}
+                size="sm"
+                className="rounded-pill px-2"
+              >
+                {t('level.national')}
+              </ToggleButton>
+              <ToggleButton
+                id="m-level-intl"
+                type="radio"
+                variant={selectedLevel === 'international' ? 'warning' : 'outline-warning'}
+                name="m-level"
+                value="international"
+                checked={selectedLevel === 'international'}
+                onChange={(e) => setSelectedLevel(e.currentTarget.value)}
+                size="sm"
+                className="rounded-pill px-2"
+              >
+                {t('level.international')}
+              </ToggleButton>
+            </div>
           </div>
         </div>
       }
     />
 
       <State loading={loading} error={error} empty={filtered.length === 0}>
-        <div className="d-flex flex-column gap-4">
+        <div className="d-flex flex-column gap-4" style={{ minWidth: 0, maxWidth: '100%' }}>
           {groupedByMonth.map((group) => (
-            <div key={group.monthKey}>
+            <div key={group.monthKey} style={{ minWidth: 0, maxWidth: '100%' }}>
               <div className="d-flex align-items-center gap-2 mb-2">
                 <h5 className="mb-0 text-primary fw-semibold">📅 {group.monthLabel}</h5>
                 <Badge bg="secondary" pill style={{ fontSize: '0.75rem' }}>

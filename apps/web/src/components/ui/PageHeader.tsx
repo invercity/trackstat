@@ -22,8 +22,9 @@ export default function PageHeader({
   return (
     <div
       className={`d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4 ${className}`}
+      style={{ minWidth: 0, maxWidth: '100%' }}
     >
-      <div>
+      <div style={{ minWidth: 0, maxWidth: '100%' }}>
         <div className="d-flex align-items-center gap-2 flex-wrap">
           {icon && (
             <span
@@ -47,7 +48,7 @@ export default function PageHeader({
       </div>
 
       {actions && (
-        <div className="d-flex align-items-center gap-2 flex-wrap ms-md-auto">
+        <div className="d-flex align-items-center gap-2 flex-wrap ms-md-auto" style={{ minWidth: 0, maxWidth: '100%' }}>
           {actions}
         </div>
       )}
