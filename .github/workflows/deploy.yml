@@ -87,7 +87,7 @@ jobs:
             --memory 512Mi \
             --cpu 1 \
             --cpu-throttling \
-            --set-env-vars "MONGO_URI=${{ secrets.MONGO_URI }},JWT_SECRET=${{ secrets.JWT_SECRET }},ADMIN_USERNAME=${{ secrets.ADMIN_USERNAME || 'admin' }},ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD || 'admin' }}" \
+            --set-env-vars "^##^MONGO_URI=${{ secrets.MONGO_URI }}##JWT_SECRET=${{ secrets.JWT_SECRET }}##ADMIN_USERNAME=${{ secrets.ADMIN_USERNAME || 'admin' }}##ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD || 'admin' }}" \
             --quiet
 
       - name: Fetch API Service URL

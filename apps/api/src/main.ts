@@ -8,6 +8,8 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
   app.enableCors();
   app.useGlobalFilters(new MongoExceptionFilter());
-  await app.listen(process.env.PORT || 4010);
+  const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 4010;
+  await app.listen(port, '0.0.0.0');
+  console.log(`TrackStat API successfully started on port ${port} (0.0.0.0)`);
 }
 bootstrap();

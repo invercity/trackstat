@@ -8,7 +8,15 @@ import { DomainModule } from './domain/domain.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     MongooseModule.forRootAsync({
-      useFactory: () => ({ uri: process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/trackstat' }),
+      useFactory: () => {
+        const rawUri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/trackstat';
+        const sanitized = rawUri.replace(/:([^@]+)@/, ':***@');
+        console.log(`[Database] Connecting to MongoDB: ${sanitized}`);
+        return {
+          uri: rawUri,
+          serverSelectionTimeoutMS: 15000,
+        };
+      },
     }),
     AuthModule,
     DomainModule,
