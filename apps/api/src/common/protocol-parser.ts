@@ -29,6 +29,7 @@ export interface ParsedMarkSingle {
   status: string;
   val: number | null;
   timing?: 'manual' | 'electronic';
+  wind?: number;
   raw: string;
 }
 
@@ -36,7 +37,19 @@ export function parseSingleMark(str: string): ParsedMarkSingle {
   if (!str) {
     return { status: 'DNS', val: null, raw: str };
   }
-  const s = str.trim().toUpperCase().replace(/,/g, '.');
+  let s = str.trim().toUpperCase().replace(/,/g, '.');
+  let wind: number | undefined;
+
+  // Handle jump/sprint mark with wind after slash, e.g. "5.67/0.0", "5.44/+2.4", "10.97/-0.6"
+  if (s.includes('/')) {
+    const slashParts = s.split('/');
+    s = slashParts[0].trim();
+    const windStr = slashParts[1]?.trim();
+    if (windStr && /^[+-]?\d+(?:\.\d+)?$/.test(windStr)) {
+      wind = parseFloat(windStr);
+    }
+  }
+
   if (['DNS', 'DNF', 'DQ', 'NM', 'Ф-DNS', 'Ф-DNF', 'Ф-DQ', 'Ф-NM'].includes(s)) {
     const cleanStatus = s.replace('Ф-', '');
     return { status: cleanStatus, val: null, raw: str };
@@ -59,13 +72,14 @@ export function parseSingleMark(str: string): ParsedMarkSingle {
       status: 'OK',
       val: Math.round((mins * 60 + secs) * 100) / 100,
       timing,
+      wind,
       raw: str,
     };
   }
 
-  // Format mm.ss.xx (with 2 dots)
+  // Format mm.ss.xx (with 2 dots, strictly numeric parts)
   const dotParts = s.split('.');
-  if (dotParts.length === 3) {
+  if (dotParts.length === 3 && /^\d+\.\d+\.\d+$/.test(s)) {
     const mins = parseFloat(dotParts[0]);
     const secs = parseFloat(dotParts[1] + '.' + dotParts[2]);
     if (dotParts[2].length === 1) {
@@ -77,6 +91,7 @@ export function parseSingleMark(str: string): ParsedMarkSingle {
       status: 'OK',
       val: Math.round((mins * 60 + secs) * 100) / 100,
       timing,
+      wind,
       raw: str,
     };
   }
@@ -94,6 +109,7 @@ export function parseSingleMark(str: string): ParsedMarkSingle {
       status: 'OK',
       val: Math.round(num * 100) / 100,
       timing,
+      wind,
       raw: str,
     };
   }
@@ -105,6 +121,7 @@ export interface ParsedProtocolValue {
   status: string;
   val: number | null;
   timing?: 'manual' | 'electronic';
+  wind?: number;
   isFinal: boolean;
   heatStr?: string;
   heatVal?: number | null;
@@ -137,6 +154,7 @@ export function parseProtocolValue(str: string): ParsedProtocolValue {
       status: finalParsed.status !== 'UNKNOWN' ? finalParsed.status : 'OK',
       val: finalParsed.val,
       timing: finalParsed.timing,
+      wind: finalParsed.wind ?? heatParsed?.wind,
       isFinal: true,
       heatStr: heatRaw || undefined,
       heatVal: heatParsed?.val ?? null,
@@ -154,6 +172,7 @@ export function parseProtocolValue(str: string): ParsedProtocolValue {
     status: single.status,
     val: single.val,
     timing: single.timing,
+    wind: single.wind,
     isFinal: false,
     raw: str,
   };

@@ -143,8 +143,10 @@ export class WebImporterService {
 
       // Value and status parsing
       const parsedVal = parseProtocolValue(r.rawMark);
+      const cleanRawMark = r.rawMark.includes('/') ? r.rawMark.split('/')[0].trim() : r.rawMark;
+      const effectiveWind = r.wind ?? parsedVal.wind;
       const numValue = parsedVal.val ?? undefined;
-      if (numValue == null && parsedVal.status === 'OK' && r.rawMark) {
+      if (numValue == null && parsedVal.status === 'OK' && cleanRawMark) {
         warnings.push(`Не вдалося розпізнати числовий результат з "${r.rawMark}"`);
       }
 
@@ -152,11 +154,11 @@ export class WebImporterService {
       let timing: 'manual' | 'electronic' | undefined;
       if (discDoc?.type === 'time' || !discDoc) {
         if (
-          r.rawMark.endsWith('h') ||
-          (r.rawMark.includes(',') && r.rawMark.split(',')[1]?.length === 1)
+          cleanRawMark.endsWith('h') ||
+          (cleanRawMark.includes(',') && cleanRawMark.split(',')[1]?.length === 1)
         ) {
           timing = 'manual';
-        } else if (r.rawMark.includes('.') && r.rawMark.split('.')[1]?.length >= 2) {
+        } else if (cleanRawMark.includes('.') && cleanRawMark.split('.')[1]?.length >= 2) {
           timing = 'electronic';
         } else if (parsedVal.timing) {
           timing = parsedVal.timing;
@@ -267,9 +269,9 @@ export class WebImporterService {
         disciplineType: (discDoc?.type as any) || 'time',
         eventHeader: `${r.rawDisciplineName} (${r.rawRound})`,
         round,
-        rawMark: r.rawMark,
+        rawMark: cleanRawMark,
         value: numValue,
-        wind: r.wind,
+        wind: effectiveWind,
         timing,
         status: parsedVal.status,
         sportRank,

@@ -76,6 +76,23 @@ describe('protocol-parser', () => {
       assert.strictEqual(parseProtocolValue('DQ').status, 'DQ');
       assert.strictEqual(parseProtocolValue('Ф-DNS').status, 'DNS');
     });
+
+    it('parses jump marks with wind after slash (e.g. 5.67/0.0 or 10.97/-0.6)', () => {
+      const p1 = parseProtocolValue('5.67/0.0');
+      assert.strictEqual(p1.status, 'OK');
+      assert.strictEqual(p1.val, 5.67);
+      assert.strictEqual(p1.wind, 0);
+
+      const p2 = parseProtocolValue('5.44/+2.4');
+      assert.strictEqual(p2.status, 'OK');
+      assert.strictEqual(p2.val, 5.44);
+      assert.strictEqual(p2.wind, 2.4);
+
+      const p3 = parseProtocolValue('10.97/-0.6');
+      assert.strictEqual(p3.status, 'OK');
+      assert.strictEqual(p3.val, 10.97);
+      assert.strictEqual(p3.wind, -0.6);
+    });
   });
 
   describe('matchStandardDisciplineName', () => {
