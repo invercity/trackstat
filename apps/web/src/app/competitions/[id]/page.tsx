@@ -328,9 +328,9 @@ export default function CompetitionPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {[...list].sort(rank).map((r, i) => (
+                        {[...list].sort(rank).map((r) => (
                           <tr key={r._id}>
-                            <td>{r.place ?? i + 1}</td>
+                            <td>{r.place ?? '–'}</td>
                             <td>
                               {r.athlete ? (
                                 <div>
@@ -419,9 +419,9 @@ export default function CompetitionPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {[...list].sort(rank).map((r, i) => (
+                        {[...list].sort(rank).map((r) => (
                           <tr key={r._id}>
-                            <td>{r.place ?? i + 1}</td>
+                            <td>{r.place ?? '–'}</td>
                             <td>
                               {r.athlete ? (
                                 <div>

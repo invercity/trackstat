@@ -6,6 +6,10 @@ import {
   parseProtocolDob,
   parseProtocolValue,
 } from './protocol-parser';
+import {
+  computeOverallFinalPlaces,
+  isFinalRoundLabel,
+} from '../domain/services/web-importer/web-importer.utils';
 
 describe('protocol-parser', () => {
   describe('parseProtocolDob', () => {
@@ -156,6 +160,44 @@ describe('protocol-parser', () => {
         'Естафета 4х400 м',
         'Крос 4 км',
       ]);
+    });
+  });
+
+  describe('web-importer multi-heat final & round place calculation', () => {
+    it('identifies true finals and excludes heats, qualifications, and combined event sub-disciplines', () => {
+      assert.strictEqual(isFinalRoundLabel('Фінал'), true);
+      assert.strictEqual(isFinalRoundLabel('Фінальні забіги'), true);
+      assert.strictEqual(isFinalRoundLabel('Забіги'), false);
+      assert.strictEqual(isFinalRoundLabel('Кваліфікація'), false);
+      assert.strictEqual(isFinalRoundLabel('1/2 фіналу'), false);
+      assert.strictEqual(isFinalRoundLabel('Семиборство'), false);
+      assert.strictEqual(isFinalRoundLabel('Фінал', 'Семиборство'), false);
+    });
+
+    it('computes overall final places across multiple timed-final heats before region filtering', () => {
+      // Cup of Ukraine 200m Men Final (3 heats)
+      const heat1Winner = { name: 'Петков Роман', heat: 1 };
+      const heat2Winner = { name: 'Єрмоленко Андрій', heat: 2 };
+      const heat3Winner = { name: 'Барабанов Андрій', heat: 3 };
+      const heat3Second = { name: 'Ємець Владислав', heat: 3 };
+      const dnsRunner = { name: 'Іванов Іван', heat: 1 };
+
+      const places = computeOverallFinalPlaces(
+        [
+          { item: heat1Winner, rawMark: '23.63', heatPlace: 1 },
+          { item: heat2Winner, rawMark: '22.43', heatPlace: 1 },
+          { item: heat3Winner, rawMark: '21.87', heatPlace: 1 },
+          { item: heat3Second, rawMark: '22.36', heatPlace: 2 },
+          { item: dnsRunner, rawMark: 'DNS', heatPlace: undefined },
+        ],
+        false,
+      );
+
+      assert.strictEqual(places.get(heat3Winner), 1);
+      assert.strictEqual(places.get(heat3Second), 2);
+      assert.strictEqual(places.get(heat2Winner), 3); // 1st in Heat 2 -> 3rd overall!
+      assert.strictEqual(places.get(heat1Winner), 4); // 1st in Heat 1 -> 4th overall!
+      assert.strictEqual(places.get(dnsRunner), undefined);
     });
   });
 });

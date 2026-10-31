@@ -221,8 +221,9 @@ export function matchStandardDisciplineName(title: string): string | null {
   if (/молот/i.test(t)) return 'Метання молота';
 
   // 6. Multi-events
-  if (/семибор/i.test(t)) return 'Семиборство';
-  if (/десятибор/i.test(t)) return 'Десятиборство';
+  if (/п['’]?ятибор|5-?бор/i.test(t)) return 'П’ятиборство';
+  if (/семибор|7-?бор/i.test(t)) return 'Семиборство';
+  if (/десятибор|10-?бор/i.test(t)) return 'Десятиборство';
 
   return null;
 }

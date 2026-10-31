@@ -7,13 +7,17 @@ import {
   WebIntegrationProvider,
 } from '../web-integration.interface';
 import {
+  computeOverallFinalPlaces,
   decodeHtmlEntities,
   detectCompetitionLevel,
   detectGenderFromLabel,
   formatUkrainianName,
   IKS_OBLAST_MAP,
+  isFieldOrPointsDiscipline,
+  isFinalRoundLabel,
   parseUarDateToIso,
 } from '../web-importer.utils';
+import { parseProtocolValue } from '../../../../common/protocol-parser';
 
 export class IksIntegrationProvider implements WebIntegrationProvider {
   readonly meta: WebIntegrationMeta = {
@@ -198,14 +202,22 @@ export class IksIntegrationProvider implements WebIntegrationProvider {
       const rawCatStr = entry.category;
       const rawRoundStr = entry.roundStr;
       const gender = detectGenderFromLabel(rawCatStr);
+      const isFinal = isFinalRoundLabel(rawRoundStr);
 
-      const windMatch = html.match(/Вітер\s*\|\s*Wind:\s*([+-]?\d+(?:\.\d+)?)/i);
-      const wind = windMatch ? parseFloat(windMatch[1]) : undefined;
+      const defaultWindMatch = html.match(/Вітер\s*\|\s*Wind:\s*([+-]?\d+(?:\.\d+)?)/i);
+      let currentWind = defaultWindMatch ? parseFloat(defaultWindMatch[1]) : undefined;
+      const heatHeadersCount = (html.match(/Забіг\s*\|\s*Heat\s*\d+/gi) || []).length;
 
       const isRelay = rawDisciplineName.toLowerCase().includes('естафет');
       const pRows = html.split(/<tr[^>]*>/i);
+      const parsedEntryRows: Array<RawWebParticipantResult & { heatPlace?: number }> = [];
 
       for (const pr of pRows) {
+        const heatWindMatch = pr.match(/Вітер\s*\|\s*Wind:\s*([+-]?\d+(?:\.\d+)?)/i);
+        if (heatWindMatch) {
+          currentWind = parseFloat(heatWindMatch[1]);
+        }
+
         const rawCells = [...pr.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map((c) =>
           decodeHtmlEntities(c[1].replace(/<small>[\s\S]*?<\/small>/gi, '').replace(/<[^>]+>/g, '').trim()),
         );
@@ -213,18 +225,16 @@ export class IksIntegrationProvider implements WebIntegrationProvider {
         if (isRelay) {
           if (rawCells.length < 5 || !pr.includes('span style="white-space: nowrap;"')) continue;
 
-          const placeNum = parseInt(rawCells[0], 10) || undefined;
+          const heatPlace = parseInt(rawCells[0], 10) || undefined;
           const rawMark = rawCells[1] || '';
           const cleanMark = rawMark.split(/\s+/)[0].trim();
           const pRegion = rawCells[4] || '';
-
-          if (normRegion && !pRegion.toLowerCase().includes(normRegion)) continue;
 
           const athletesMatches = [...pr.matchAll(/([А-ЯЄІЇҐа-яєіїґ\s'-]+)&nbsp;\(?(\d{2}\.\d{2}\.\d{4})?\)?/g)];
           const relayMembers = athletesMatches.map((m) => formatUkrainianName(m[1].trim())).filter(Boolean);
           const relayName = pRegion ? `Естафета ${pRegion}` : 'Естафетна команда';
 
-          results.push({
+          parsedEntryRows.push({
             rawDisciplineName,
             rawCategory: rawCatStr,
             rawRound: rawRoundStr,
@@ -236,7 +246,8 @@ export class IksIntegrationProvider implements WebIntegrationProvider {
             firstName: '',
             relayMembers,
             rawMark: cleanMark,
-            placeNum,
+            placeNum: undefined,
+            heatPlace,
           });
           continue;
         }
@@ -245,9 +256,7 @@ export class IksIntegrationProvider implements WebIntegrationProvider {
         if (rawCells.length < 8) continue;
 
         const participantRegion = rawCells[7] || '';
-        if (normRegion && !participantRegion.toLowerCase().includes(normRegion)) continue;
-
-        const placeNum = parseInt(rawCells[0], 10) || undefined;
+        const heatPlace = parseInt(rawCells[0], 10) || undefined;
         const rawLastName = rawCells[4] || '';
         const rawFirstName = rawCells[5] || '';
         const dobStr = rawCells[6] || undefined;
@@ -258,7 +267,7 @@ export class IksIntegrationProvider implements WebIntegrationProvider {
         const rawCoaches = rawCells[13] || '';
         const coaches = rawCoaches ? rawCoaches.split(/[,;/]+/).map((c) => c.trim()).filter(Boolean) : [];
 
-        results.push({
+        parsedEntryRows.push({
           rawDisciplineName,
           rawCategory: rawCatStr,
           rawRound: rawRoundStr,
@@ -270,11 +279,42 @@ export class IksIntegrationProvider implements WebIntegrationProvider {
           firstName: formatUkrainianName(rawFirstName),
           dobStr,
           rawMark: cleanMark,
-          placeNum,
-          wind,
+          placeNum: undefined,
+          heatPlace,
+          wind: currentWind,
           grade,
           coaches,
         });
+      }
+
+      if (isFinal) {
+        const firstPlacesCount = parsedEntryRows.filter((r) => r.heatPlace === 1).length;
+        const isMultiHeatFinal = heatHeadersCount > 1 || firstPlacesCount > 1;
+        if (isMultiHeatFinal) {
+          const higherWins = isFieldOrPointsDiscipline(rawDisciplineName);
+          const overallPlaces = computeOverallFinalPlaces(
+            parsedEntryRows.map((r) => ({ item: r, rawMark: r.rawMark, heatPlace: r.heatPlace })),
+            higherWins,
+          );
+          for (const r of parsedEntryRows) {
+            r.placeNum = overallPlaces.get(r);
+          }
+        } else {
+          for (const r of parsedEntryRows) {
+            const parsed = parseProtocolValue(r.rawMark);
+            if (r.heatPlace != null && parsed.status === 'OK' && parsed.val != null) {
+              r.placeNum = r.heatPlace;
+            }
+          }
+        }
+      }
+
+      for (const r of parsedEntryRows) {
+        if (normRegion && !r.participantRegion.toLowerCase().includes(normRegion)) {
+          continue;
+        }
+        const { heatPlace: _hp, ...cleanRow } = r;
+        results.push(cleanRow);
       }
     }
 
