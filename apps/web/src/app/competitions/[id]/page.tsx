@@ -11,7 +11,7 @@ import MarkDisplay from '@/components/ui/MarkDisplay';
 import PageHeader from '@/components/ui/PageHeader';
 import SchoolLink from '@/components/ui/SchoolLink';
 import { useFetch } from '@/lib/api';
-import { compareResults, formatDate, fullName } from '@/lib/format';
+import { compareDisciplines, compareResults, formatDate, fullName } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import type { Competition, Discipline, Result } from '@/lib/types';
 
@@ -118,7 +118,7 @@ export default function CompetitionPage() {
     });
     const groups = Array.from(map.values());
     groups.sort((a, b) => {
-      const nameComp = (dName(a.d) || '').localeCompare(dName(b.d) || '');
+      const nameComp = compareDisciplines(a.d.name, b.d.name);
       if (nameComp !== 0) return nameComp;
       const gWeight = (g: string) => (g === 'M' ? 1 : g === 'F' ? 2 : 3);
       const genComp = gWeight(a.gender) - gWeight(b.gender);
@@ -145,9 +145,9 @@ export default function CompetitionPage() {
 
     const groups = Array.from(map.values());
 
-    // Sort by discipline name, then by gender (M then F), then by category order, then by round (heats first, finals second)
+    // Sort by athletic discipline order, then by gender (M then F), then by category order, then by round (heats first, finals second)
     groups.sort((a, b) => {
-      const nameComp = (dName(a.d) || '').localeCompare(dName(b.d) || '');
+      const nameComp = compareDisciplines(a.d.name, b.d.name);
       if (nameComp !== 0) return nameComp;
       const gWeight = (g: string) => (g === 'M' ? 1 : g === 'F' ? 2 : 3);
       const genComp = gWeight(a.gender) - gWeight(b.gender);

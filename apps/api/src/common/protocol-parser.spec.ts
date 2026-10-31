@@ -1,6 +1,7 @@
 import { describe, it } from 'node:test';
 import * as assert from 'node:assert';
 import {
+  compareDisciplineNames,
   matchStandardDisciplineName,
   parseProtocolDob,
   parseProtocolValue,
@@ -121,6 +122,38 @@ describe('protocol-parser', () => {
       assert.strictEqual(matchStandardDisciplineName('4х100 м'), 'Естафета 4х100 м');
       assert.strictEqual(matchStandardDisciplineName('4х400 м'), 'Естафета 4х400 м');
       assert.strictEqual(matchStandardDisciplineName('4х800 м'), 'Естафета 4х800 м');
+    });
+  });
+
+  describe('compareDisciplineNames', () => {
+    it('sorts disciplines in official athletic order (60 -> 100 -> 200 -> 400 -> 800 -> 1500 -> 3000 -> hurdles -> jumps -> throws -> relays)', () => {
+      const unordered = [
+        'Естафета 4х400 м',
+        '800 м',
+        '100 м',
+        'Стрибки у довжину',
+        '1500 м',
+        '60 м',
+        'Штовхання ядра',
+        '400 м',
+        '60 м з бар’єрами',
+        '200 м',
+        '3000 м',
+      ];
+      const sorted = [...unordered].sort(compareDisciplineNames);
+      assert.deepStrictEqual(sorted, [
+        '60 м',
+        '100 м',
+        '200 м',
+        '400 м',
+        '800 м',
+        '1500 м',
+        '3000 м',
+        '60 м з бар’єрами',
+        'Стрибки у довжину',
+        'Штовхання ядра',
+        'Естафета 4х400 м',
+      ]);
     });
   });
 });

@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ageCategory } from '../../common/age-category';
 import { CrudService } from '../../common/crud';
+import { compareDisciplineNames } from '../../common/protocol-parser';
 import { isBetterMark } from '../../common/result-comparison';
 import { Athlete, Competition, Discipline, Result } from '../schemas';
 import { determineSportRank } from '../ua-ranks';
@@ -293,9 +294,9 @@ export class ResultsService extends CrudService {
       });
     }
 
-    // Sort groups: discipline name -> category -> gender (M then F)
+    // Sort groups: athletic discipline order -> category -> gender (M then F)
     groups.sort((a, b) => {
-      const nameComp = (a.discipline.name || '').localeCompare(b.discipline.name || '');
+      const nameComp = compareDisciplineNames(a.discipline.name, b.discipline.name);
       if (nameComp !== 0) return nameComp;
       const catComp = getCatWeight(a.category) - getCatWeight(b.category);
       if (catComp !== 0) return catComp;

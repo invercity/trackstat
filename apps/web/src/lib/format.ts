@@ -106,3 +106,81 @@ export const formatDate = (d?: string | null) =>
 
 export const fullName = (a: { lastName: string; firstName: string; middleName?: string }) =>
   `${a.lastName} ${a.firstName}${a.middleName ? ' ' + a.middleName : ''}`;
+
+/**
+ * Повертає числовий порядок легкоатлетичної дисципліни (60 -> 100 -> 200 -> 400 -> 800 -> 1500 -> 3000 -> 5000 -> 10000 -> бар'єри -> перешкоди -> стрибки -> метання -> багатоборства -> естафети).
+ */
+export function getDisciplineSortWeight(name?: string | null): number {
+  if (!name) return 9999;
+  const t = name.toLowerCase().replace(/\s+/g, ' ').trim();
+
+  if (t.includes('естафет') || /4\s*[хx]\s*\d+/i.test(t) || t.includes('relay')) {
+    if (/4\s*[хx]\s*100/i.test(t)) return 510;
+    if (/100\s*\+\s*200/i.test(t) || t.includes('swedish')) return 520;
+    if (/4\s*[хx]\s*400/i.test(t)) return 530;
+    if (/4\s*[хx]\s*800/i.test(t)) return 540;
+    return 550;
+  }
+
+  if (t.includes('п’ятибор') || t.includes("п'ятибор") || t.includes('трибор') || t.includes('pentathlon')) return 405;
+  if (t.includes('семибор') || t.includes('heptathlon')) return 410;
+  if (t.includes('десятибор') || t.includes('decathlon')) return 420;
+
+  if (t.includes('ядр') || t.includes('shot')) return 310;
+  if (t.includes('диск') || t.includes('discus')) return 320;
+  if (t.includes('молот') || t.includes('hammer')) return 330;
+  if (t.includes('спис') || t.includes('javelin')) return 340;
+
+  if (t.includes('висот') || t.includes('high jump')) return 210;
+  if (t.includes('жердин') || t.includes('pole vault')) return 220;
+  if (t.includes('довжин') || t.includes('long jump')) return 230;
+  if (t.includes('потрійн') || t.includes('triple jump')) return 240;
+
+  if (/бар|з\/б|з\.б|hurdle/i.test(t)) {
+    if (/\b60\b/.test(t)) return 110;
+    if (/\b100\b/.test(t)) return 120;
+    if (/\b110\b/.test(t)) return 130;
+    if (/\b300\b/.test(t)) return 135;
+    if (/\b400\b/.test(t)) return 140;
+    return 145;
+  }
+  if (/перешк|з\/п|з\.п|steeple/i.test(t)) {
+    if (/\b1500\b/.test(t)) return 150;
+    if (/\b2000\b/.test(t)) return 155;
+    if (/\b3000\b/.test(t)) return 160;
+    return 165;
+  }
+
+  if (t.includes('крос') || t.includes('cross')) {
+    const kmMatch = t.match(/(\d+)\s*(?:км|km)/);
+    return 90 + (kmMatch ? parseInt(kmMatch[1], 10) : 5);
+  }
+
+  const mMatch = t.match(/(?:^|\D)(\d+)\s*(?:м|m)(?:$|[^а-яіїєґa-z])/i);
+  if (mMatch) {
+    const meters = parseInt(mMatch[1], 10);
+    if (meters === 60) return 10;
+    if (meters === 100) return 20;
+    if (meters === 200) return 30;
+    if (meters === 300) return 35;
+    if (meters === 400) return 40;
+    if (meters === 600) return 45;
+    if (meters === 800) return 50;
+    if (meters === 1000) return 55;
+    if (meters === 1500) return 60;
+    if (meters === 2000) return 65;
+    if (meters === 3000) return 70;
+    if (meters === 5000) return 80;
+    if (meters === 10000) return 85;
+    return Math.min(89, Math.round(meters / 100));
+  }
+
+  return 900;
+}
+
+export function compareDisciplines(a?: string | null, b?: string | null): number {
+  const wA = getDisciplineSortWeight(a);
+  const wB = getDisciplineSortWeight(b);
+  if (wA !== wB) return wA - wB;
+  return (a || '').localeCompare(b || '');
+}

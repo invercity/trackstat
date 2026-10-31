@@ -16,7 +16,7 @@ import {
 } from 'react-bootstrap';
 import { api } from '@/lib/api';
 import PageHeader from '@/components/ui/PageHeader';
-import { formatDate } from '@/lib/format';
+import { compareDisciplines, formatDate } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import type {
   ParsedItemPreview,
@@ -228,7 +228,7 @@ export default function WebImportPage() {
   const uniqueDisciplines = useMemo(() => {
     const set = new Set<string>();
     previewItems.forEach((it) => set.add(it.disciplineCanonicalName));
-    return Array.from(set).sort();
+    return Array.from(set).sort(compareDisciplines);
   }, [previewItems]);
 
   const toggleSelectAll = (select: boolean) => {
