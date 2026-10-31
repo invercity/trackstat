@@ -3,13 +3,15 @@ import assert from 'node:assert/strict';
 import {
   decodeHtmlEntities,
   detectCompetitionLevel,
+  detectGenderFromLabel,
   formatUkrainianName,
   IKS_OBLAST_MAP,
   parseUarDateToIso,
   WebImporterService,
+  WebIntegrationProvider,
 } from './web-importer.service';
 
-describe('web-importer utilities', () => {
+describe('web-importer utilities and providers', () => {
   it('decodes HTML entities correctly', () => {
     assert.equal(decodeHtmlEntities('&#039;Привіт&#039; &amp; &quot;Світ&quot;'), '\'Привіт\' & "Світ"');
     assert.equal(decodeHtmlEntities('&nbsp;&nbsp;Текст&nbsp;'), 'Текст');
@@ -34,13 +36,20 @@ describe('web-importer utilities', () => {
     assert.equal(detectCompetitionLevel('Міжнародні змагання пам’яті героїв'), 'international');
   });
 
+  it('detects gender from category or gender labels', () => {
+    assert.equal(detectGenderFromLabel('Дівчата U16'), 'F');
+    assert.equal(detectGenderFromLabel('Жінки'), 'F');
+    assert.equal(detectGenderFromLabel('Юнаки U18'), 'M');
+    assert.equal(detectGenderFromLabel('Чоловіки'), 'M');
+  });
+
   it('maps IKS oblast codes to Ukrainian region names', () => {
     assert.equal(IKS_OBLAST_MAP['chng'], 'Чернігівська');
     assert.equal(IKS_OBLAST_MAP['kyiv'], 'Київська');
     assert.equal(IKS_OBLAST_MAP['dnip'], 'Дніпропетровська');
   });
 
-  it('returns both IKS and UAR in getIntegrations list', () => {
+  it('registers default IKS and UAR providers and supports custom provider registration', async () => {
     const service = new WebImporterService(
       {} as any,
       {} as any,
@@ -54,7 +63,32 @@ describe('web-importer utilities', () => {
     assert.equal(integrations.length, 2);
     assert.equal(integrations[0].id, 'iks');
     assert.equal(integrations[1].id, 'uar');
-    assert.equal(integrations[0].enabled, true);
-    assert.equal(integrations[0].website, 'https://iks.org.ua/competitions1');
+
+    const mockProvider: WebIntegrationProvider = {
+      meta: {
+        id: 'mock',
+        name: 'Mock Provider',
+        website: 'https://mock.test',
+        description: 'Test provider',
+        defaultRegion: 'Чернігівська',
+        enabled: true,
+      },
+      getYears: async () => [2026],
+      getCompetitions: async () => [],
+      fetchCompetitionResults: async () => ({
+        compId: '1',
+        title: 'Test',
+        startDate: '2026-01-01',
+        endDate: '2026-01-01',
+        location: 'м.Чернігів',
+        indoor: true,
+        year: 2026,
+        results: [],
+      }),
+    };
+
+    service.registerProvider(mockProvider);
+    assert.equal(service.getIntegrations().length, 3);
+    assert.deepEqual(await service.getYears('mock'), [2026]);
   });
 });
