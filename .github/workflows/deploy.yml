@@ -22,7 +22,7 @@ on:
       - '.gitignore'
 
 env:
-  GCP_REGION: ${{ vars.GCP_REGION || 'europe-west3' }}
+  GCP_REGION: ${{ vars.GCP_REGION || 'europe-west1' }}
   GCP_PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
   ARTIFACT_REPO: trackstat
 
@@ -48,6 +48,12 @@ jobs:
 
       - name: Configure Docker authentication for Artifact Registry
         run: |
+          gcloud artifacts repositories describe "${{ env.ARTIFACT_REPO }}" --location="${{ env.GCP_REGION }}" --quiet 2>/dev/null || \
+          gcloud artifacts repositories create "${{ env.ARTIFACT_REPO }}" \
+            --repository-format=docker \
+            --location="${{ env.GCP_REGION }}" \
+            --description="Trackstat Docker repository" \
+            --quiet || true
           gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
 
       - name: Set up Docker Buildx
