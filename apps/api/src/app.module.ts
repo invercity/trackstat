@@ -14,6 +14,7 @@ import { DomainModule } from './domain/domain.module';
         console.log(`[Database] Connecting to MongoDB: ${sanitized}`);
         return {
           uri: rawUri,
+          dbName: 'trackstat',
           serverSelectionTimeoutMS: 15000,
         };
       },
