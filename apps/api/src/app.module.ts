@@ -10,10 +10,17 @@ import { DomainModule } from './domain/domain.module';
     MongooseModule.forRootAsync({
       useFactory: () => {
         const rawUri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/trackstat';
-        const sanitized = rawUri.replace(/:([^@]+)@/, ':***@');
+        let fixedUri = rawUri;
+        // If URI connects to root / without db name, enforce /trackstat
+        if (fixedUri.includes('/?')) {
+          fixedUri = fixedUri.replace('/?', '/trackstat?');
+        } else if (fixedUri.endsWith('/')) {
+          fixedUri = `${fixedUri}trackstat`;
+        }
+        const sanitized = fixedUri.replace(/:([^@]+)@/, ':***@');
         console.log(`[Database] Connecting to MongoDB: ${sanitized}`);
         return {
-          uri: rawUri,
+          uri: fixedUri,
           dbName: 'trackstat',
           serverSelectionTimeoutMS: 15000,
         };
