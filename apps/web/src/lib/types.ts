@@ -325,6 +325,7 @@ export interface ParsedItemPreview {
   status: string;
   sportRank?: string;
   waScore?: number;
+  wind?: number;
   coaches: string[];
   isRelay: boolean;
   relayMembers?: string[];

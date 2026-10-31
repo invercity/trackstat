@@ -46,6 +46,7 @@ export interface ParsedItemPreview {
   status: string;
   sportRank?: string;
   waScore?: number;
+  wind?: number;
   coaches: string[];
   isRelay: boolean;
   relayMembers?: string[];
@@ -603,6 +604,7 @@ export class ProtocolImporterService {
         ageCategory: item.ageCategory || 'U18',
         rank: item.sportRank,
         waScore: item.waScore,
+        wind: item.wind,
         coaches: item.coaches,
       };
 
