@@ -12,4 +12,8 @@ async function bootstrap() {
   await app.listen(port, '0.0.0.0');
   console.log(`TrackStat API successfully started on port ${port} (0.0.0.0)`);
 }
-bootstrap();
+
+bootstrap().catch((err) => {
+  console.error('[FATAL] Failed to start TrackStat API:', err);
+  process.exit(1);
+});
