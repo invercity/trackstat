@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       target:
-        description: 'Service to deploy (all / api / web)'
+        description: 'Сервіс для деплою (all / api / web)'
         required: true
         default: 'all'
         type: choice
@@ -12,6 +12,14 @@ on:
           - all
           - api
           - web
+  pull_request:
+    branches:
+      - master
+      - main
+    paths-ignore:
+      - 'README.md'
+      - 'LICENSE'
+      - '.gitignore'
   push:
     branches:
       - master
