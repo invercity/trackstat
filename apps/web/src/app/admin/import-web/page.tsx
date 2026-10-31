@@ -365,7 +365,9 @@ export default function WebImportPage() {
       <Card className="mb-4 shadow-sm border-0">
         <Card.Header className="bg-white py-3 border-bottom d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
           <div className="d-flex align-items-center gap-2">
-            <h2 className="h6 mb-0 fw-bold">2. Вибір змагання з UAR</h2>
+            <h2 className="h6 mb-0 fw-bold">
+              2. Вибір змагання з {selectedIntegrationId === 'iks' ? 'IKS' : 'UAR'}
+            </h2>
             <Badge bg="primary">{filteredCompetitions.length}</Badge>
           </div>
 
@@ -427,7 +429,7 @@ export default function WebImportPage() {
                     const isSelected = selectedComp?.id === comp.id;
                     return (
                       <tr
-                        key={comp.id}
+                        key={`${comp.id}-${idx}`}
                         className={isSelected ? 'table-primary' : ''}
                         style={{ cursor: 'pointer' }}
                         onClick={() => handleSelectCompetition(comp)}
@@ -595,12 +597,12 @@ export default function WebImportPage() {
                   {loadingPreview ? (
                     <>
                       <Spinner animation="border" size="sm" />
-                      Завантаження протоколів з UAR...
+                      Завантаження протоколів з {selectedIntegrationId === 'iks' ? 'IKS' : 'UAR'}...
                     </>
                   ) : (
                     <>
                       <span>📥</span>
-                      Завантажити результати області з UAR
+                      Завантажити результати області з {selectedIntegrationId === 'iks' ? 'IKS' : 'UAR'}
                     </>
                   )}
                 </Button>

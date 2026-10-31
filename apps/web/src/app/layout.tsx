@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="uk">
+    <html lang="uk" data-scroll-behavior="smooth">
       <body className="bg-light min-vh-100 d-flex flex-column">
         <I18nProvider>
           <AppNavbar />

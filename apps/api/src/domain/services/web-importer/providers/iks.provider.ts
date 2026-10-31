@@ -55,12 +55,15 @@ export class IksIntegrationProvider implements WebIntegrationProvider {
     const html = await res.text();
     const rows = html.split(/<tr[^>]*>/i);
     const comps: WebCompetitionItem[] = [];
+    const seenIds = new Set<string>();
 
     for (const r of rows) {
       const linkMatch = r.match(/<a\s+href="\/competitions1\/([^"/]+)"[^>]*title="([^"]+)"/i);
       if (!linkMatch) continue;
 
       const compId = linkMatch[1].trim();
+      if (seenIds.has(compId)) continue;
+      seenIds.add(compId);
       const rawTitle = decodeHtmlEntities(linkMatch[2]);
 
       const cells = [...r.matchAll(/<td[^>]*>([\s\S]*?)<\/td>/gi)].map((c) =>
@@ -160,7 +163,7 @@ export class IksIntegrationProvider implements WebIntegrationProvider {
       }
     }
 
-    const BATCH_SIZE = 8;
+    const BATCH_SIZE = 16;
     const entryResults: Array<{ entry: (typeof entries)[0]; html: string }> = [];
     for (let i = 0; i < entries.length; i += BATCH_SIZE) {
       const chunk = entries.slice(i, i + BATCH_SIZE);

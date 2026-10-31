@@ -89,13 +89,16 @@ export class WebImporterService {
       name: { $regex: new RegExp(`^${payload.title.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}$`, 'i') },
     });
 
-    // Cache disciplines from our DB
-    const allDisciplines = await this.disciplines.find();
+    // Cache disciplines and schools from our DB
+    const [allDisciplines, allSchools, allAthletes] = await Promise.all([
+      this.disciplines.find(),
+      this.schools.find(),
+      this.athletes.find().populate('school'),
+    ]);
     const discMap = new Map<string, Discipline>();
     allDisciplines.forEach((d) => discMap.set(d.name, d));
 
     // Cache athletes from our DB for matching
-    const allAthletes = await this.athletes.find().populate('school');
     const athleteByName = new Map<string, Athlete[]>();
     for (const a of allAthletes) {
       const key = `${a.lastName.trim().toLowerCase()}_${a.firstName.trim().toLowerCase()}`;
@@ -228,14 +231,8 @@ export class WebImporterService {
       if (!r.isRelay && !matchedSchoolId && schoolQueryText) {
         const resolvedSchool = resolveSchool(schoolQueryText);
         if (resolvedSchool) {
-          const sDoc = await this.schools.findOne({
-            name: {
-              $regex: new RegExp(
-                resolvedSchool.name.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&'),
-                'i',
-              ),
-            },
-          });
+          const targetLower = resolvedSchool.name.toLowerCase();
+          const sDoc = allSchools.find((s) => s.name.toLowerCase().includes(targetLower));
           if (sDoc) {
             matchedSchoolId = String((sDoc as any)._id);
             matchedSchoolName = sDoc.name;
