@@ -487,17 +487,14 @@ export class ProtocolImporterService {
         throw new BadRequestException('Вкажіть назву нового змагання');
       }
       const seasonSpec = payload.newCompetition.date
-        ? determineSeason(payload.newCompetition.date)
+        ? determineSeason(payload.newCompetition.date, payload.newCompetition.name)
         : {
             year: payload.newCompetition.seasonYear || 2026,
-            indoor: false,
-            label: String(payload.newCompetition.seasonYear || 2026),
+            indoor: /приміщен|манеж|різдвян|indoor/i.test(payload.newCompetition.name || ''),
+            label: `${payload.newCompetition.seasonYear || 2026}${/приміщен|манеж|різдвян|indoor/i.test(payload.newCompetition.name || '') ? ' (i)' : ''}`,
           };
       const seasonYear = seasonSpec.year;
       let seasonDoc = await this.seasons.findOne({ year: seasonYear, indoor: seasonSpec.indoor });
-      if (!seasonDoc) {
-        seasonDoc = await this.seasons.findOne({ year: seasonYear });
-      }
       if (!seasonDoc) {
         seasonDoc = await this.seasons.create({
           year: seasonYear,

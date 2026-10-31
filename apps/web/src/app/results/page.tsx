@@ -58,6 +58,7 @@ export default function ResultsLeaderboardPage() {
 
   const [mode, setMode] = useState<'sb' | 'pb'>('sb');
   const [year, setYear] = useState<number | undefined>(undefined);
+  const [selectedIndoor, setSelectedIndoor] = useState<'ALL' | 'outdoor' | 'indoor'>('ALL');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [selectedGender, setSelectedGender] = useState<'ALL' | 'M' | 'F'>('ALL');
   const [search, setSearch] = useState<string>('');
@@ -67,7 +68,7 @@ export default function ResultsLeaderboardPage() {
     setIsAdmin(!!auth.get());
   }, []);
 
-  const queryUrl = `/results/leaderboard?mode=${mode}${mode === 'sb' && year ? `&year=${year}` : ''}`;
+  const queryUrl = `/results/leaderboard?mode=${mode}${mode === 'sb' && year ? `&year=${year}` : ''}${selectedIndoor !== 'ALL' ? `&indoor=${selectedIndoor}` : ''}`;
   const { data, loading, error } = useFetch<LeaderboardResponse>(queryUrl);
 
   const displayYear = data?.year ?? year ?? new Date().getFullYear();
@@ -164,6 +165,45 @@ export default function ResultsLeaderboardPage() {
                 </Form.Select>
               </Col>
             )}
+
+            {/* Outdoor / Indoor Filter */}
+            <Col xs="auto">
+              <ButtonGroup size="sm">
+                <ToggleButton
+                  id="results-ind-all"
+                  type="radio"
+                  variant="outline-secondary"
+                  name="results-indoor"
+                  value="ALL"
+                  checked={selectedIndoor === 'ALL'}
+                  onChange={(e) => setSelectedIndoor(e.currentTarget.value as any)}
+                >
+                  {t('common.all')}
+                </ToggleButton>
+                <ToggleButton
+                  id="results-ind-outdoor"
+                  type="radio"
+                  variant="outline-success"
+                  name="results-indoor"
+                  value="outdoor"
+                  checked={selectedIndoor === 'outdoor'}
+                  onChange={(e) => setSelectedIndoor(e.currentTarget.value as any)}
+                >
+                  {t('a.outdoor')}
+                </ToggleButton>
+                <ToggleButton
+                  id="results-ind-indoor"
+                  type="radio"
+                  variant="outline-info"
+                  name="results-indoor"
+                  value="indoor"
+                  checked={selectedIndoor === 'indoor'}
+                  onChange={(e) => setSelectedIndoor(e.currentTarget.value as any)}
+                >
+                  {t('a.indoor')}
+                </ToggleButton>
+              </ButtonGroup>
+            </Col>
 
             {/* Category Filter */}
             <Col xs="auto">
@@ -304,13 +344,20 @@ export default function ResultsLeaderboardPage() {
                           </div>
                         </td>
                         <td>
-                          <MarkDisplay
-                            value={r.value}
-                            type={group.discipline.type}
-                            timing={r.timing}
-                            status={r.status}
-                            wind={r.wind}
-                          />
+                          <div className="d-inline-flex align-items-center gap-1">
+                            <MarkDisplay
+                              value={r.value}
+                              type={group.discipline.type}
+                              timing={r.timing}
+                              status={r.status}
+                              wind={r.wind}
+                            />
+                            {r.indoor && (
+                              <Badge bg="info" text="dark" className="fw-normal" title="У приміщенні (Indoor)">
+                                i
+                              </Badge>
+                            )}
+                          </div>
                         </td>
                         <td>{r.sportRank ? <Badge bg="primary">{r.sportRank}</Badge> : '–'}</td>
                         <td>

@@ -5,6 +5,7 @@ import { ageCategory } from '../../common/age-category';
 import { CrudService } from '../../common/crud';
 import { compareDisciplineNames } from '../../common/protocol-parser';
 import { isBetterMark } from '../../common/result-comparison';
+import { determineSeason } from '../../common/season';
 import { Athlete, Competition, Discipline, Result } from '../schemas';
 import { determineSportRank } from '../ua-ranks';
 import { calculateWaScore } from '../wa-scoring';
@@ -129,6 +130,7 @@ export class ResultsService extends CrudService {
   async getLeaderboard(params: {
     mode?: 'sb' | 'pb';
     year?: number;
+    indoor?: 'ALL' | 'outdoor' | 'indoor' | string;
     category?: string;
     gender?: 'M' | 'F' | 'ALL' | string;
     disciplineId?: string;
@@ -137,12 +139,12 @@ export class ResultsService extends CrudService {
     const mode = params.mode || 'sb';
     const limit = params.limit ?? 10;
 
-    // 1. Determine all available years from competitions
-    const allCompDates = await this.competitions.find({}, 'date').lean();
+    // 1. Determine all available season years from competitions
+    const allCompDates = await this.competitions.find({}, 'date name').lean();
     const yearSet = new Set<number>();
     for (const c of allCompDates) {
       if (c.date) {
-        yearSet.add(new Date(c.date).getFullYear());
+        yearSet.add(determineSeason(c.date, c.name).year);
       }
     }
     const availableYears = Array.from(yearSet).sort((a, b) => b - a);
@@ -157,12 +159,6 @@ export class ResultsService extends CrudService {
 
     if (params.disciplineId) {
       filter.discipline = params.disciplineId;
-    }
-
-    if (mode === 'sb') {
-      const startOfYear = new Date(targetYear, 0, 1);
-      const endOfYear = new Date(targetYear, 11, 31, 23, 59, 59, 999);
-      filter.date = { $gte: startOfYear, $lte: endOfYear };
     }
 
     const rawResults = await this.model
@@ -184,7 +180,17 @@ export class ResultsService extends CrudService {
     for (const r of rawResults) {
       const athlete = r.athlete as any;
       const discipline = r.discipline as any;
+      const season = r.season as any;
       if (!athlete || !discipline) continue;
+
+      if (mode === 'sb') {
+        const sYear = season?.year ?? (r.date ? determineSeason(r.date).year : null);
+        if (sYear !== targetYear) continue;
+      }
+
+      const isIndoor = Boolean(season?.indoor);
+      if (params.indoor === 'indoor' && !isIndoor) continue;
+      if (params.indoor === 'outdoor' && isIndoor) continue;
 
       const gender = athlete.gender;
       if (params.gender && params.gender !== 'ALL' && params.gender !== gender) continue;
@@ -273,6 +279,7 @@ export class ResultsService extends CrudService {
         sportRank: r.rank,
         waScore: r.waScore,
         date: r.date,
+        indoor: Boolean((r.season as any)?.indoor),
         competition: {
           _id: String(r.competition?._id ?? ''),
           name: r.competition?.name ?? '',

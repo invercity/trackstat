@@ -5,30 +5,34 @@ export interface SeasonSpec {
 }
 
 /**
- * Визначення сезону за датою:
- * - Сезон outdoor (стадіон): квітень - жовтень (місяці 4..10)
- * - Сезон indoor (манеж): листопад - березень (місяці 11..12 та 1..3)
- *   Листопад та грудень поточного року відносяться до indoor сезону наступного року.
- *   Січень - березень відносяться до indoor сезону поточного року.
+ * Визначення сезону за датою та (опціонально) назвою змагання:
+ * - Якщо в назві явно вказано «у приміщенні», «манеж», «різдвяні старти» — це indoor.
+ * - Якщо в назві явно вказано «з метань» або «з кросу» — це outdoor (навіть узимку/навесні).
+ * - Інакше за датою: квітень - жовтень (4..10) = outdoor, листопад - березень (11..12, 1..3) = indoor.
+ *   Листопад та грудень поточного року відносяться до сезону наступного року.
  */
-export function determineSeason(date: Date | string = new Date()): SeasonSpec {
+export function determineSeason(
+  date: Date | string = new Date(),
+  competitionName?: string,
+): SeasonSpec {
   const d = new Date(date);
   const month = d.getUTCMonth() + 1; // 1 = Jan .. 12 = Dec
   const calYear = d.getUTCFullYear();
+  const seasonYear = month >= 11 ? calYear + 1 : calYear;
 
-  if (month >= 4 && month <= 10) {
-    return {
-      year: calYear,
-      indoor: false,
-      label: `${calYear}`,
-    };
+  let indoor: boolean;
+  if (competitionName && /приміщен|манеж|різдвян|indoor/i.test(competitionName)) {
+    indoor = true;
+  } else if (competitionName && /метан|крос|шосе|марафон|outdoor/i.test(competitionName)) {
+    indoor = false;
+  } else {
+    indoor = month < 4 || month > 10;
   }
 
-  const seasonYear = month >= 11 ? calYear + 1 : calYear;
   return {
     year: seasonYear,
-    indoor: true,
-    label: `${seasonYear} (i)`,
+    indoor,
+    label: `${seasonYear}${indoor ? ' (i)' : ''}`,
   };
 }
 

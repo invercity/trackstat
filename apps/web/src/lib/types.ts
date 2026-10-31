@@ -276,6 +276,7 @@ export interface LeaderboardItem {
   sportRank?: string;
   waScore?: number;
   date: string;
+  indoor?: boolean;
   competition: { _id: string; name: string; location?: string };
   round?: string;
 }

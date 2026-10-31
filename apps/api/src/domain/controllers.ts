@@ -67,6 +67,7 @@ export class ResultsController extends CrudController {
   getLeaderboard(
     @Query('mode') mode?: 'sb' | 'pb',
     @Query('year') year?: string,
+    @Query('indoor') indoor?: 'ALL' | 'outdoor' | 'indoor',
     @Query('category') category?: string,
     @Query('gender') gender?: 'M' | 'F',
     @Query('disciplineId') disciplineId?: string,
@@ -75,6 +76,7 @@ export class ResultsController extends CrudController {
     return this.resultsService.getLeaderboard({
       mode,
       year: year ? parseInt(year, 10) : undefined,
+      indoor,
       category,
       gender,
       disciplineId,
