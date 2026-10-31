@@ -745,7 +745,7 @@ export default function WebImportPage() {
                 <th>Дисципліна & Раунд</th>
                 <th>Результат</th>
                 <th>Хронометраж</th>
-                <th>Розряд / WA</th>
+                <th>Розряд</th>
                 <th>Школа / Команда</th>
                 <th>Статус в базі</th>
               </tr>
@@ -815,7 +815,7 @@ export default function WebImportPage() {
                         </Badge>
                       )}
                       {item.waScore != null && (
-                        <span className="small text-muted">{item.waScore} WA</span>
+                        <span className="small text-muted">{item.waScore}</span>
                       )}
                     </td>
                     <td>

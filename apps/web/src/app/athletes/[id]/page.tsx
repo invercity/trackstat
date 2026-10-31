@@ -26,7 +26,6 @@ function MarkCell({ m, type }: { m: Mark | null; type: any }) {
         wind={m.wind}
         rank={m.rank}
         waScore={m.waScore}
-        showWaTag={true}
       />
       <div className="small text-muted">
         <Link href={`/competitions/${m.competition._id}`}>{m.competition.name}</Link>, {formatDate(m.date)}

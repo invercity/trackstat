@@ -62,7 +62,6 @@ export default function MarkDisplay({
       {waScore !== undefined && waScore !== null && (
         <small className="text-muted" title="Очки World Athletics">
           {waScore}
-          {showWaTag ? ' WA' : ''}
         </small>
       )}
     </span>
