@@ -1,6 +1,17 @@
 name: Deploy to Google Cloud Run
 
 on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Service to deploy (all / api / web)'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - api
+          - web
   push:
     branches:
       - master
@@ -9,7 +20,6 @@ on:
       - 'README.md'
       - 'LICENSE'
       - '.gitignore'
-  workflow_dispatch:
 
 env:
   GCP_REGION: ${{ vars.GCP_REGION || 'europe-west3' }}
@@ -20,7 +30,7 @@ jobs:
   deploy:
     name: Build & Deploy
     runs-on: ubuntu-latest
-    if: "!startsWith(github.event.head_commit.message, 'chore(release):')"
+    if: github.event_name == 'workflow_dispatch' || !startsWith(github.event.head_commit.message, 'chore(release):')
 
     steps:
       - name: Checkout repository
@@ -45,6 +55,7 @@ jobs:
 
       # --- 1. BUILD & DEPLOY API ---
       - name: Build and push API Docker image
+        if: github.event_name != 'workflow_dispatch' || inputs.target == 'all' || inputs.target == 'api'
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -55,6 +66,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Deploy API to Cloud Run
+        if: github.event_name != 'workflow_dispatch' || inputs.target == 'all' || inputs.target == 'api'
         run: |
           gcloud run deploy trackstat-api \
             --image "${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/api:latest" \
@@ -70,7 +82,8 @@ jobs:
             --set-env-vars "MONGO_URI=${{ secrets.MONGO_URI }},JWT_SECRET=${{ secrets.JWT_SECRET }},ADMIN_USERNAME=${{ secrets.ADMIN_USERNAME || 'admin' }},ADMIN_PASSWORD=${{ secrets.ADMIN_PASSWORD || 'admin' }}" \
             --quiet
 
-      - name: Get API Service URL
+      - name: Fetch API Service URL
+        if: github.event_name != 'workflow_dispatch' || inputs.target == 'all' || inputs.target == 'web'
         id: api_url
         run: |
           API_URL=$(gcloud run services describe trackstat-api --region "${{ env.GCP_REGION }}" --format 'value(status.url)')
@@ -79,6 +92,7 @@ jobs:
 
       # --- 2. BUILD & DEPLOY WEB ---
       - name: Build and push Web Docker image
+        if: github.event_name != 'workflow_dispatch' || inputs.target == 'all' || inputs.target == 'web'
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -89,6 +103,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Deploy Web to Cloud Run
+        if: github.event_name != 'workflow_dispatch' || inputs.target == 'all' || inputs.target == 'web'
         run: |
           gcloud run deploy trackstat-web \
             --image "${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/web:latest" \
@@ -104,7 +119,9 @@ jobs:
             --set-env-vars "API_URL=${{ env.API_URL }}" \
             --quiet
 
-      - name: Clean up old images
+      # --- 3. STORAGE CLEANUP (Guarantee 0$ Artifact Registry Storage) ---
+      - name: Clean up untagged old images (Keep storage under 0.5 GB Free Tier)
+        if: always()
         run: |
           echo "Cleaning up dangling images from Artifact Registry..."
           for component in api web; do
