@@ -31,7 +31,7 @@ export class ResultsService extends CrudService {
     if (query.seasonId) filter.season = query.seasonId;
     return this.model
       .find(filter)
-      .sort({ date: -1 })
+      .sort({ date: -1, _id: -1 })
       .populate({
         path: 'athlete',
         select: 'lastName firstName middleName birthDate gender club school',
