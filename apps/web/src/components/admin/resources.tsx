@@ -190,8 +190,13 @@ export function buildResources({ t, dName }: I18n): Record<string, ResourceDef> 
               ? `${formatValue(r.value, r.discipline?.type, r.timing)}${r.timing === 'manual' ? ' (р)' : ''}`
               : r.status,
         },
-        { label: t('f.rank'), render: (r) => r.rank || '–' },
-        { label: t('f.waScore'), render: (r) => (r.waScore !== undefined && r.waScore !== null ? r.waScore : '–') },
+        {
+          label: t('f.rank'),
+          render: (r) =>
+            [r.rank, r.waScore !== undefined && r.waScore !== null ? `(${r.waScore})` : '']
+              .filter(Boolean)
+              .join(' ') || '–',
+        },
         { label: t('f.category'), render: (r) => t(`cat.${r.ageCategory}`) },
         { label: t('f.competition'), render: (r) => r.competition?.name || '–' },
       ],

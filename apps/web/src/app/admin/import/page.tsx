@@ -555,8 +555,7 @@ export default function AdminImportPage() {
                       <th>Дисципліна</th>
                       <th style={{ width: 80 }}>Стадія</th>
                       <th>Результат</th>
-                      <th style={{ width: 70 }}>Розряд</th>
-                      <th style={{ width: 70 }}>WA</th>
+                      <th style={{ width: 95 }}>Розряд</th>
                       <th>Статус / Попередження</th>
                     </tr>
                   </thead>
@@ -635,8 +634,20 @@ export default function AdminImportPage() {
                             </span>
                           )}
                         </td>
-                        <td>{item.sportRank || '–'}</td>
-                        <td>{item.waScore || '–'}</td>
+                        <td>
+                          <div className="d-flex align-items-center gap-1">
+                            {item.sportRank ? (
+                              <Badge bg="dark">{item.sportRank}</Badge>
+                            ) : !item.waScore ? (
+                              <span className="text-muted">–</span>
+                            ) : null}
+                            {item.waScore != null && (
+                              <small className="text-muted" title="Очки World Athletics">
+                                {item.waScore}
+                              </small>
+                            )}
+                          </div>
+                        </td>
                         <td>
                           {item.warnings.length > 0 ? (
                             <div className="text-danger small">

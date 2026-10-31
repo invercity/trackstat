@@ -312,7 +312,6 @@ export default function ResultsLeaderboardPage() {
                     <th className="col-athlete">{t('f.athlete')}</th>
                     <th className="col-mark">{t('f.value')}</th>
                     <th className="col-rank">{t('f.rank')}</th>
-                    <th className="col-wa">{t('f.waScore')}</th>
                     <th className="col-date">{t('f.date')}</th>
                     <th>{t('f.competition')}</th>
                   </tr>
@@ -359,15 +358,19 @@ export default function ResultsLeaderboardPage() {
                             )}
                           </div>
                         </td>
-                        <td>{r.sportRank ? <Badge bg="primary">{r.sportRank}</Badge> : '–'}</td>
                         <td>
-                          {r.waScore !== undefined && r.waScore !== null ? (
-                            <Badge bg="info" text="dark">
-                              {r.waScore}
-                            </Badge>
-                          ) : (
-                            '–'
-                          )}
+                          <div className="d-flex align-items-center gap-1">
+                            {r.sportRank ? (
+                              <Badge bg="primary">{r.sportRank}</Badge>
+                            ) : r.waScore === undefined || r.waScore === null ? (
+                              <span className="text-muted">–</span>
+                            ) : null}
+                            {r.waScore !== undefined && r.waScore !== null && (
+                              <small className="text-muted" title="Очки World Athletics">
+                                {r.waScore}
+                              </small>
+                            )}
+                          </div>
                         </td>
                         <td className="text-muted small">{formatDate(r.date)}</td>
                         <td>

@@ -191,7 +191,6 @@ export default function AthletePage() {
                               <th className="col-disc-md">{t('f.discipline')}</th>
                               <th className="col-mark">{t('f.value')}</th>
                               <th className="col-rank">{t('f.rank')}</th>
-                              <th className="col-wa">{t('f.waScore')}</th>
                               <th className="col-idx">{t('f.place')}</th>
                               <th className="col-cat">{t('f.category')}</th>
                             </tr>
@@ -212,8 +211,20 @@ export default function AthletePage() {
                                     wind={r.wind}
                                   />
                                 </td>
-                                <td>{r.rank ? <Badge bg="primary">{r.rank}</Badge> : '–'}</td>
-                                <td>{r.waScore !== undefined && r.waScore !== null ? <Badge bg="info" text="dark">{r.waScore}</Badge> : '–'}</td>
+                                <td>
+                                  <div className="d-flex align-items-center gap-1">
+                                    {r.rank ? (
+                                      <Badge bg="primary">{r.rank}</Badge>
+                                    ) : r.waScore === undefined || r.waScore === null ? (
+                                      <span className="text-muted">–</span>
+                                    ) : null}
+                                    {r.waScore !== undefined && r.waScore !== null && (
+                                      <small className="text-muted" title="Очки World Athletics">
+                                        {r.waScore}
+                                      </small>
+                                    )}
+                                  </div>
+                                </td>
                                 <td>{r.place ?? '–'}</td>
                                 <td><CategoryBadge category={r.ageCategory} /></td>
                               </tr>

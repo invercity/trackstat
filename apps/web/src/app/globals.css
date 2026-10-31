@@ -106,11 +106,7 @@ a:not(.btn):not(.nav-link):not(.navbar-brand):not(.page-link):hover {
 }
 
 .table-fixed .col-rank {
-  width: 90px;
-}
-
-.table-fixed .col-wa {
-  width: 90px;
+  width: 115px;
 }
 
 .table-fixed .col-points {
