@@ -250,15 +250,15 @@ export default function RelaysPage() {
                   )}
 
                   <Card.Body className="p-0">
-                    <Table responsive hover size="sm" className="mb-0 align-middle">
+                    <Table responsive hover size="sm" className="table-fixed mb-0 align-middle">
                       <thead className="table-light small text-muted">
                         <tr>
-                          <th style={{ width: '45px' }} className="text-center">
+                          <th className="col-idx-sm text-center">
                             {t('relays.stage')}
                           </th>
-                          <th style={{ width: '75px' }}>{t('relays.distance')}</th>
+                          <th className="col-season">{t('relays.distance')}</th>
                           <th>{t('relays.athlete')}</th>
-                          <th style={{ minWidth: '130px' }}>{t('relays.mark')}</th>
+                          <th className="col-mark">{t('relays.mark')}</th>
                         </tr>
                       </thead>
                       <tbody>

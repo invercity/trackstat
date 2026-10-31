@@ -313,15 +313,15 @@ export default function CompetitionsPage() {
                   {group.items.length}
                 </Badge>
               </div>
-              <Table hover responsive bordered className="bg-white align-middle shadow-sm mb-0">
+              <Table hover responsive bordered className="table-fixed bg-white align-middle shadow-sm mb-0">
                 <thead className="table-light">
                   <tr>
-                    <th style={{ width: '130px' }}>{t('f.date')}</th>
+                    <th className="col-date">{t('f.date')}</th>
                     <th>{t('f.name')}</th>
-                    <th style={{ width: '140px' }}>{t('f.competitionLevel')}</th>
-                    <th>{t('f.location')}</th>
-                    <th style={{ width: '110px' }}>{t('f.season')}</th>
-                    <th>{t('f.ageCategories')}</th>
+                    <th className="col-level">{t('f.competitionLevel')}</th>
+                    <th className="col-location">{t('f.location')}</th>
+                    <th className="col-season">{t('f.season')}</th>
+                    <th className="col-categories">{t('f.ageCategories')}</th>
                   </tr>
                 </thead>
                 <tbody>

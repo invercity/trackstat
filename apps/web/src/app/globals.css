@@ -43,3 +43,100 @@ a:not(.btn):not(.nav-link):not(.navbar-brand):not(.page-link):hover {
 .table th.sortable:hover {
   background-color: #f1f3f5;
 }
+
+/* Уніфікована сітка таблиць з фіксованою шириною колонок (щоб колонки не "стрибали" між різними блоками) */
+.table-fixed {
+  table-layout: fixed;
+  width: 100%;
+  min-width: 720px;
+}
+
+.table-fixed.table-sm {
+  min-width: 480px;
+}
+
+.table-fixed th,
+.table-fixed td {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+
+.table-fixed .col-idx-sm {
+  width: 44px;
+}
+
+.table-fixed .col-idx {
+  width: 60px;
+}
+
+.table-fixed .col-date {
+  width: 115px;
+}
+
+.table-fixed .col-level {
+  width: 135px;
+}
+
+.table-fixed .col-location {
+  width: 185px;
+}
+
+.table-fixed .col-season {
+  width: 95px;
+}
+
+.table-fixed .col-categories {
+  width: 145px;
+}
+
+.table-fixed .col-cat {
+  width: 105px;
+}
+
+.table-fixed .col-gender {
+  width: 90px;
+}
+
+.table-fixed .col-mark-sm {
+  width: 100px;
+}
+
+.table-fixed .col-mark {
+  width: 130px;
+}
+
+.table-fixed .col-rank {
+  width: 90px;
+}
+
+.table-fixed .col-wa {
+  width: 90px;
+}
+
+.table-fixed .col-points {
+  width: 100px;
+}
+
+.table-fixed .col-round {
+  width: 110px;
+}
+
+.table-fixed .col-athlete {
+  width: 25%;
+}
+
+.table-fixed .col-disc {
+  width: 28%;
+}
+
+.table-fixed .col-disc-md {
+  width: 165px;
+}
+
+.table-fixed .col-school {
+  width: 22%;
+}
+
+.table-fixed .col-coach {
+  width: 18%;
+}

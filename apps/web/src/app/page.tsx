@@ -29,14 +29,14 @@ function TopResultsTable({
   const isMen = gender === 'M';
 
   return (
-    <Table responsive size="sm" className="align-middle mb-0">
+    <Table responsive size="sm" className="table-fixed align-middle mb-0">
       <thead>
         <tr className="text-muted small">
-          <th style={{ width: '36px' }}>#</th>
+          <th className="col-idx-sm">#</th>
           <th>{t('f.fullName')}</th>
-          <th>{t('f.discipline')}</th>
-          <th>{t('f.value')}</th>
-          <th style={{ width: '90px' }}>{t('f.rank')}</th>
+          <th className="col-disc">{t('f.discipline')}</th>
+          <th className="col-mark-sm">{t('f.value')}</th>
+          <th className="col-rank">{t('f.rank')}</th>
         </tr>
       </thead>
       <tbody>

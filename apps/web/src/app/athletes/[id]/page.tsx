@@ -96,10 +96,10 @@ export default function AthletePage() {
             <Tabs defaultActiveKey="pb" className="mb-3">
               <Tab eventKey="pb" title={t('a.pb')}>
                 <State loading={stats.loading} error={stats.error} empty={stats.data?.personalBests.length === 0}>
-                  <Table bordered responsive className="bg-white align-middle">
+                  <Table bordered responsive className="table-fixed bg-white align-middle">
                     <thead>
                       <tr>
-                        <th>{t('f.discipline')}</th>
+                        <th className="col-disc">{t('f.discipline')}</th>
                         <th>{t('a.outdoor')}</th>
                         <th>{t('a.indoor')}</th>
                       </tr>
@@ -122,11 +122,11 @@ export default function AthletePage() {
                   {stats.data?.seasonBests.map((sb) => (
                     <Card key={sb.season._id} className="mb-3">
                       <Card.Header className="fw-bold">{sb.season.label}</Card.Header>
-                      <Table responsive className="m-0 align-middle">
+                      <Table responsive className="table-fixed m-0 align-middle">
                         <tbody>
                           {sb.results.map((r) => (
                             <tr key={r.discipline._id}>
-                              <td style={{ width: '30%' }}>{dName(r.discipline)}</td>
+                              <td className="col-disc">{dName(r.discipline)}</td>
                               <td><MarkCell m={r} type={r.discipline.type} /></td>
                             </tr>
                           ))}
@@ -139,18 +139,18 @@ export default function AthletePage() {
 
               <Tab eventKey="all" title={t('a.results')}>
                 <State loading={results.loading} error={results.error} empty={results.data?.length === 0}>
-                  <Table bordered responsive className="bg-white align-middle">
+                  <Table bordered responsive className="table-fixed bg-white align-middle">
                     <thead>
                       <tr>
-                        <th>{t('f.date')}</th>
+                        <th className="col-date">{t('f.date')}</th>
                         <th>{t('f.competition')}</th>
-                        <th>{t('f.season')}</th>
-                        <th>{t('f.discipline')}</th>
-                        <th>{t('f.value')}</th>
-                        <th>{t('f.rank')}</th>
-                        <th>{t('f.waScore')}</th>
-                        <th>{t('f.place')}</th>
-                        <th>{t('f.category')}</th>
+                        <th className="col-season">{t('f.season')}</th>
+                        <th className="col-disc-md">{t('f.discipline')}</th>
+                        <th className="col-mark">{t('f.value')}</th>
+                        <th className="col-rank">{t('f.rank')}</th>
+                        <th className="col-wa">{t('f.waScore')}</th>
+                        <th className="col-idx">{t('f.place')}</th>
+                        <th className="col-cat">{t('f.category')}</th>
                       </tr>
                     </thead>
                     <tbody>

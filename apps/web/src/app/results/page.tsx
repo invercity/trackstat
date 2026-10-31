@@ -265,15 +265,15 @@ export default function ResultsLeaderboardPage() {
                 </Badge>
               </Card.Header>
 
-              <Table responsive hover className="m-0 align-middle">
+              <Table responsive hover className="table-fixed m-0 align-middle">
                 <thead className="table-light">
                   <tr>
-                    <th style={{ width: 50 }}>#</th>
-                    <th>{t('f.athlete')}</th>
-                    <th>{t('f.value')}</th>
-                    <th>{t('f.rank')}</th>
-                    <th>{t('f.waScore')}</th>
-                    <th>{t('f.date')}</th>
+                    <th className="col-idx">#</th>
+                    <th className="col-athlete">{t('f.athlete')}</th>
+                    <th className="col-mark">{t('f.value')}</th>
+                    <th className="col-rank">{t('f.rank')}</th>
+                    <th className="col-wa">{t('f.waScore')}</th>
+                    <th className="col-date">{t('f.date')}</th>
                     <th>{t('f.competition')}</th>
                   </tr>
                 </thead>

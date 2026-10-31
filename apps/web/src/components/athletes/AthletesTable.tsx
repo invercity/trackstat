@@ -46,26 +46,32 @@ export default function AthletesTable({
   };
 
   return (
-    <Table hover responsive bordered className={className}>
+    <Table hover responsive bordered className={`table-fixed ${className}`}>
       <thead className="table-light">
         <tr>
-          <th {...getSortHeaderProps('lastName')}>
+          <th
+            {...getSortHeaderProps('lastName')}
+            className={`col-athlete ${onSort ? 'sortable' : ''}`}
+          >
             {t('f.fullName')} {sortIcon('lastName')}
           </th>
           <th
             {...getSortHeaderProps('birthDate')}
-            style={onSort ? { cursor: 'pointer', whiteSpace: 'nowrap', width: 140 } : { width: 140 }}
+            className={`col-date ${onSort ? 'sortable' : ''}`}
           >
             {t('f.birthDate')} {sortIcon('birthDate')}
           </th>
-          <th style={{ width: 110 }}>{t('f.category')}</th>
-          {showGender && <th style={{ width: 90 }}>{t('f.gender')}</th>}
+          <th className="col-cat">{t('f.category')}</th>
+          {showGender && <th className="col-gender">{t('f.gender')}</th>}
           {showSchool && (
-            <th {...getSortHeaderProps('club')}>
+            <th
+              {...getSortHeaderProps('club')}
+              className={`col-school ${onSort ? 'sortable' : ''}`}
+            >
               {t('f.school')} / {t('f.club')} {sortIcon('club')}
             </th>
           )}
-          <th>{t('f.coach')}</th>
+          <th className="col-coach">{t('f.coach')}</th>
           <th>{t('f.mainDisciplines')}</th>
         </tr>
       </thead>

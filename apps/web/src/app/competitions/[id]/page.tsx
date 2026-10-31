@@ -310,16 +310,16 @@ export default function CompetitionPage() {
                         {list.length} {t('school.athletesCount')}
                       </Badge>
                     </Card.Header>
-                    <Table responsive className="m-0 align-middle">
+                    <Table responsive className="table-fixed m-0 align-middle">
                       <thead>
                         <tr>
-                          <th>#</th>
+                          <th className="col-idx">#</th>
                           <th>{t('f.athlete')}</th>
-                          <th>{t('f.value')}</th>
-                          <th>{t('f.rank')}</th>
-                          <th>{t('f.waScore')}</th>
-                          <th>{t('f.teamPoints')}</th>
-                          <th>{t('f.round')}</th>
+                          <th className="col-mark">{t('f.value')}</th>
+                          <th className="col-rank">{t('f.rank')}</th>
+                          <th className="col-wa">{t('f.waScore')}</th>
+                          <th className="col-points">{t('f.teamPoints')}</th>
+                          <th className="col-round">{t('f.round')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -389,17 +389,17 @@ export default function CompetitionPage() {
                         {list.length} {t('school.athletesCount')}
                       </Badge>
                     </Card.Header>
-                    <Table responsive className="m-0 align-middle">
+                    <Table responsive className="table-fixed m-0 align-middle">
                       <thead>
                         <tr>
-                          <th>#</th>
+                          <th className="col-idx">#</th>
                           <th>{t('f.athlete')}</th>
-                          <th>{t('f.category')}</th>
-                          <th>{t('f.value')}</th>
-                          <th>{t('f.rank')}</th>
-                          <th>{t('f.waScore')}</th>
-                          <th>{t('f.teamPoints')}</th>
-                          <th>{t('f.round')}</th>
+                          <th className="col-cat">{t('f.category')}</th>
+                          <th className="col-mark">{t('f.value')}</th>
+                          <th className="col-rank">{t('f.rank')}</th>
+                          <th className="col-wa">{t('f.waScore')}</th>
+                          <th className="col-points">{t('f.teamPoints')}</th>
+                          <th className="col-round">{t('f.round')}</th>
                         </tr>
                       </thead>
                       <tbody>
