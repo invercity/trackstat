@@ -173,8 +173,14 @@ export class WebImporterService {
       let sportRank: string | undefined = r.grade || undefined;
       let waScore: number | undefined;
 
-      if (!r.isRelay && numValue != null && parsedVal.status === 'OK') {
-        const detectedRank = determineSportRank(r.gender, disciplineCanonicalName, numValue, timing);
+      if (numValue != null && parsedVal.status === 'OK') {
+        const detectedRank = determineSportRank(
+          r.gender,
+          disciplineCanonicalName,
+          numValue,
+          timing,
+          seasonSpec.indoor || payload.indoor,
+        );
         if (detectedRank) sportRank = detectedRank;
 
         const score = calculateWaScore(r.gender, disciplineCanonicalName, numValue, timing);
