@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { ageCategory } from '../../common/age-category';
+import { ageCategory, normalizeAgeCategoryLabel } from '../../common/age-category';
 import { determineSeason } from '../../common/season';
 import {
   matchStandardDisciplineName,
@@ -131,7 +131,7 @@ export class WebImporterService {
       const athleteName = `${lastName} ${firstName}`.trim();
 
       let birthDateIso: string | undefined;
-      let calculatedAgeCat = r.rawCategory || 'U18';
+      let calculatedAgeCat: string = normalizeAgeCategoryLabel(r.rawCategory, payload.title);
 
       if (!r.isRelay && r.dobStr) {
         const bDate = parseProtocolDob(r.dobStr);

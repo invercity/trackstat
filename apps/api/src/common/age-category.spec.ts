@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { ageCategory } from './age-category';
+import { ageCategory, normalizeAgeCategoryLabel } from './age-category';
 
 describe('ageCategory', () => {
   const eventDate = new Date('2026-06-15T00:00:00Z');
@@ -43,5 +43,13 @@ describe('ageCategory', () => {
   it('handles Date objects as inputs', () => {
     const birth = new Date('2010-02-15T00:00:00Z');
     assert.equal(ageCategory(birth, eventDate), 'U18');
+  });
+
+  it('normalizes raw category labels to canonical AgeCategory values', () => {
+    assert.equal(normalizeAgeCategoryLabel('Юніори U20'), 'U21');
+    assert.equal(normalizeAgeCategoryLabel('Юнаки U16'), 'U16');
+    assert.equal(normalizeAgeCategoryLabel('Дівчата U18'), 'U18');
+    assert.equal(normalizeAgeCategoryLabel('Молодь U23'), 'U23');
+    assert.equal(normalizeAgeCategoryLabel('Чоловіки'), 'ADULT');
   });
 });

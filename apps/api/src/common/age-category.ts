@@ -15,3 +15,18 @@ export function ageCategory(birthDate: Date | string, onDate: Date | string = ne
   if (age <= 22) return 'U23';
   return 'ADULT';
 }
+
+/**
+ * Приводить довільну текстову мітку категорії з протоколів (напр. "Юніори U20", "Юнаки U16", "Чоловіки")
+ * до канонічного значення AgeCategory ('U16' | 'U18' | 'U21' | 'U23' | 'ADULT').
+ */
+export function normalizeAgeCategoryLabel(raw?: string, fallbackTitle?: string): AgeCategory {
+  const combined = `${raw || ''} ${fallbackTitle || ''}`.toUpperCase();
+  if (/\bU1[246]\b|201[1234]/.test(combined)) return 'U16';
+  if (/\bU18\b|2009|2010/.test(combined)) return 'U18';
+  if (/\bU2[01]\b|ЮНІОР/.test(combined)) return 'U21';
+  if (/\bU23\b|МОЛОД/.test(combined)) return 'U23';
+  if (/\bADULT\b|ДОРОСЛ|ЧОЛОВІК|ЖІНК|ЖІНОК/.test(combined)) return 'ADULT';
+  if (/ЮНАК|ДІВЧАТ/.test(combined)) return 'U18';
+  return 'U18';
+}
