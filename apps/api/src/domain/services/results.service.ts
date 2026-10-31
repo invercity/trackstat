@@ -65,8 +65,10 @@ export class ResultsService extends CrudService {
     }
 
     let cat = data.ageCategory;
-    if (athlete) {
+    if (athlete && !cat) {
       cat = ageCategory(athlete.birthDate, competition.date);
+    }
+    if (athlete) {
       if (competition.ageCategories.length && !competition.ageCategories.includes(cat)) {
         throw new BadRequestException(`Категорія ${cat} не допускається до цього змагання`);
       }
@@ -186,7 +188,9 @@ export class ResultsService extends CrudService {
       const gender = athlete.gender;
       if (params.gender && params.gender !== 'ALL' && params.gender !== gender) continue;
 
-      const cat = r.ageCategory || ageCategory(athlete.birthDate, r.date);
+      const cat = athlete.birthDate
+        ? ageCategory(athlete.birthDate, r.date)
+        : r.ageCategory || 'ADULT';
       if (params.category && params.category !== 'ALL' && cat !== params.category) continue;
 
       const groupKey = `${discipline._id}__${cat}__${gender}`;

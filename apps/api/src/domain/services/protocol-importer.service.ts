@@ -525,6 +525,7 @@ export class ProtocolImporterService {
     let athletesMatchedCount = 0;
 
     const compDisciplinesSet = new Set<string>((compDoc.disciplines || []).map((id: any) => String(id)));
+    const compCategoriesSet = new Set<string>(compDoc.ageCategories || []);
 
     // Cache created/matched athletes to avoid duplicates within same file import
     const athleteCache = new Map<string, Types.ObjectId>();
@@ -639,11 +640,13 @@ export class ProtocolImporterService {
       }
 
       await this.results.updateOne(filter, { $set: resultDoc }, { upsert: true });
+      compCategoriesSet.add(resultDoc.ageCategory);
       importedResultsCount++;
     }
 
-    // Update competition's disciplines list
+    // Update competition's disciplines and ageCategories list
     compDoc.disciplines = Array.from(compDisciplinesSet).map((id) => new Types.ObjectId(id));
+    compDoc.ageCategories = Array.from(compCategoriesSet);
     await compDoc.save();
 
     return {

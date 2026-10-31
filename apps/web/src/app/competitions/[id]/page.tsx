@@ -190,8 +190,8 @@ export default function CompetitionPage() {
                   {c.endDate && <span>– {formatDate(c.endDate)}</span>}
                   {c.location && <span>· {c.location}</span>}
                   {c.season?.label && <span>· {c.season.label}</span>}
-                  {c.ageCategories.map((x) => (
-                    <CategoryBadge key={x} category={x} className="ms-1" />
+                  {(c.ageCategories.length > 0 ? c.ageCategories : availableCategories).map((x) => (
+                    <CategoryBadge key={x} category={x} variant="colored" className="ms-1" />
                   ))}
                 </div>
               }
@@ -235,20 +235,22 @@ export default function CompetitionPage() {
                     Жінки
                   </ToggleButton>
                 </ButtonGroup>
-                <ButtonGroup size="sm">
-                  <Button
-                    variant={viewMode === 'categories' ? 'primary' : 'outline-secondary'}
-                    onClick={() => setViewMode('categories')}
-                  >
-                    🏷️ {t('c.viewCategories')}
-                  </Button>
-                  <Button
-                    variant={viewMode === 'absolute' ? 'primary' : 'outline-secondary'}
-                    onClick={() => setViewMode('absolute')}
-                  >
-                    ⚡ {t('c.viewAbsolute')}
-                  </Button>
-                </ButtonGroup>
+                {availableCategories.length > 1 && (
+                  <ButtonGroup size="sm">
+                    <Button
+                      variant={viewMode === 'categories' ? 'primary' : 'outline-secondary'}
+                      onClick={() => setViewMode('categories')}
+                    >
+                      🏷️ {t('c.viewCategories')}
+                    </Button>
+                    <Button
+                      variant={viewMode === 'absolute' ? 'primary' : 'outline-secondary'}
+                      onClick={() => setViewMode('absolute')}
+                    >
+                      ⚡ {t('c.viewAbsolute')}
+                    </Button>
+                  </ButtonGroup>
+                )}
               </div>
             </div>
 
@@ -287,9 +289,13 @@ export default function CompetitionPage() {
             <State
               loading={results.loading}
               error={results.error}
-              empty={viewMode === 'categories' ? displayedCategoryGroups.length === 0 : displayedAbsoluteGroups.length === 0}
+              empty={
+                viewMode === 'categories' || availableCategories.length <= 1
+                  ? displayedCategoryGroups.length === 0
+                  : displayedAbsoluteGroups.length === 0
+              }
             >
-              {viewMode === 'categories' ? (
+              {viewMode === 'categories' || availableCategories.length <= 1 ? (
                 displayedCategoryGroups.map(({ key, d, gender, category, round, list }) => (
                   <Card key={key} className="mb-3">
                     <Card.Header className="d-flex align-items-center justify-content-between py-2">
@@ -297,7 +303,7 @@ export default function CompetitionPage() {
                         <span className="fw-bold">{dName(d)}</span>
                         {gender === 'M' && <Badge bg="primary">Чоловіки</Badge>}
                         {gender === 'F' && <Badge bg="danger">Жінки</Badge>}
-                        {category !== 'OTHER' && (
+                        {availableCategories.length > 1 && category !== 'OTHER' && (
                           <CategoryBadge category={category} variant="colored" />
                         )}
                         {round && (

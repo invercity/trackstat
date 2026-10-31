@@ -51,5 +51,13 @@ describe('ageCategory', () => {
     assert.equal(normalizeAgeCategoryLabel('Дівчата U18'), 'U18');
     assert.equal(normalizeAgeCategoryLabel('Молодь U23'), 'U23');
     assert.equal(normalizeAgeCategoryLabel('Чоловіки'), 'ADULT');
+    assert.equal(
+      normalizeAgeCategoryLabel('Молодь чоловіки U23', 'Зимовий чемпіонат серед дорослих, молоді, юніорів'),
+      'U23',
+    );
+    assert.equal(
+      normalizeAgeCategoryLabel('Жінки', 'Чемпіонат з кросу серед дорослих, молоді, юніорів та юнаків'),
+      'ADULT',
+    );
   });
 });

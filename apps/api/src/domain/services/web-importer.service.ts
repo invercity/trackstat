@@ -137,7 +137,9 @@ export class WebImporterService {
         const bDate = parseProtocolDob(r.dobStr);
         if (bDate) {
           birthDateIso = bDate.toISOString();
-          calculatedAgeCat = ageCategory(bDate, new Date(Date.UTC(seasonSpec.year, 0, 1)));
+          if (!r.rawCategory?.trim()) {
+            calculatedAgeCat = ageCategory(bDate, new Date(Date.UTC(seasonSpec.year, 0, 1)));
+          }
         }
       }
 
