@@ -20,7 +20,7 @@ export class RankingsService {
 
   async getRankings(yearOrSeasonId?: string | number) {
     const currentSpec = determineSeason();
-    const currentYear = new Date().getFullYear();
+    const currentYear = currentSpec.year;
 
     // Ensure the current season exists in DB
     await this.seasonsService.ensureSeason();
@@ -41,7 +41,7 @@ export class RankingsService {
       }
     }
 
-    // Available calendar years
+    // Available season years
     const seasonYears = await this.seasons.distinct('year');
     const allYears = Array.from(new Set([currentYear, ...seasonYears]))
       .filter((y): y is number => typeof y === 'number' && !isNaN(y))
@@ -57,19 +57,19 @@ export class RankingsService {
     for (const a of allAthletes) {
       athleteMap.set(String(a._id), {
         ...a,
-        ageCategory: ageCategory(a.birthDate),
+        ageCategory: ageCategory(a.birthDate, new Date(Date.UTC(targetYear, 5, 1))),
       });
     }
 
-    // Load results in calendar year (both indoor and outdoor)
-    const startOfYear = new Date(Date.UTC(targetYear, 0, 1));
-    const endOfYear = new Date(Date.UTC(targetYear, 11, 31, 23, 59, 59, 999));
+    // Load results in athletic season year (Nov 1 of targetYear-1 through Oct 31 of targetYear)
+    const startOfSeasonYear = new Date(Date.UTC(targetYear - 1, 10, 1));
+    const endOfSeasonYear = new Date(Date.UTC(targetYear, 9, 31, 23, 59, 59, 999));
 
     const results = await this.results
       .find({
         $or: [
           { season: { $in: seasonIds } },
-          { date: { $gte: startOfYear, $lte: endOfYear } },
+          { date: { $gte: startOfSeasonYear, $lte: endOfSeasonYear } },
         ],
         status: 'OK',
         athlete: { $ne: null },

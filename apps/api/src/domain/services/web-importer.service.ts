@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ageCategory } from '../../common/age-category';
+import { determineSeason } from '../../common/season';
 import {
   matchStandardDisciplineName,
   parseProtocolDob,
@@ -81,6 +82,7 @@ export class WebImporterService {
   ): Promise<WebImportPreviewResponse> {
     const provider = this.getProvider(integrationId);
     const payload = await provider.fetchCompetitionResults(compId, year, regionFilter);
+    const seasonSpec = determineSeason(payload.startDate || new Date(Date.UTC(year, 5, 1)));
 
     // Check if competition already exists in our DB
     const existingComp = await this.competitions.findOne({
@@ -132,7 +134,7 @@ export class WebImporterService {
         const bDate = parseProtocolDob(r.dobStr);
         if (bDate) {
           birthDateIso = bDate.toISOString();
-          calculatedAgeCat = ageCategory(bDate, new Date(year, 0, 1));
+          calculatedAgeCat = ageCategory(bDate, new Date(Date.UTC(seasonSpec.year, 0, 1)));
         }
       }
 
@@ -294,8 +296,8 @@ export class WebImporterService {
         endDate: payload.endDate || payload.startDate,
         location: payload.location,
         level: detectedLevel,
-        indoor: payload.indoor,
-        seasonYear: year,
+        indoor: payload.indoor || seasonSpec.indoor,
+        seasonYear: seasonSpec.year,
         existingCompetitionId: existingComp ? String(existingComp._id) : undefined,
       },
       stats: {

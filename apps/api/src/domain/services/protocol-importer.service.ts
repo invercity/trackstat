@@ -17,6 +17,7 @@ import {
 } from '../../common/protocol-parser';
 import { resolveSchool } from '../../common/school-resolver';
 import { ageCategory } from '../../common/age-category';
+import { determineSeason } from '../../common/season';
 import { calculateWaScore } from '../wa-scoring';
 import { determineSportRank } from '../ua-ranks';
 
@@ -483,13 +484,23 @@ export class ProtocolImporterService {
       if (!payload.newCompetition?.name) {
         throw new BadRequestException('Вкажіть назву нового змагання');
       }
-      const seasonYear = payload.newCompetition.seasonYear || new Date(payload.newCompetition.date).getFullYear() || 2026;
-      let seasonDoc = await this.seasons.findOne({ year: seasonYear, indoor: false });
+      const seasonSpec = payload.newCompetition.date
+        ? determineSeason(payload.newCompetition.date)
+        : {
+            year: payload.newCompetition.seasonYear || 2026,
+            indoor: false,
+            label: String(payload.newCompetition.seasonYear || 2026),
+          };
+      const seasonYear = seasonSpec.year;
+      let seasonDoc = await this.seasons.findOne({ year: seasonYear, indoor: seasonSpec.indoor });
+      if (!seasonDoc) {
+        seasonDoc = await this.seasons.findOne({ year: seasonYear });
+      }
       if (!seasonDoc) {
         seasonDoc = await this.seasons.create({
           year: seasonYear,
-          indoor: false,
-          label: String(seasonYear),
+          indoor: seasonSpec.indoor,
+          label: seasonSpec.label,
         });
       }
 
@@ -681,7 +692,7 @@ export class ProtocolImporterService {
       const parsedDates = parseDatesFromText(line);
       if (parsedDates.date && !suggestedDate) {
         suggestedDate = parsedDates.date.toISOString().slice(0, 10);
-        suggestedSeasonYear = parsedDates.date.getFullYear();
+        suggestedSeasonYear = determineSeason(parsedDates.date).year;
         if (parsedDates.endDate) {
           suggestedEndDate = parsedDates.endDate.toISOString().slice(0, 10);
         }

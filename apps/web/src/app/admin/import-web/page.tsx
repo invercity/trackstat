@@ -262,7 +262,7 @@ export default function WebImportPage() {
           endDate: compEndDate || undefined,
           location: compLocation,
           level: compLevel,
-          seasonYear: selectedYear,
+          seasonYear: previewData?.competition.seasonYear || selectedYear,
         },
         items: previewItems.filter((it) => it.selected),
       };
