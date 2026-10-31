@@ -3,7 +3,9 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ageCategory } from '../../common/age-category';
 import { CrudService } from '../../common/crud';
+import { compareDisciplineNames } from '../../common/protocol-parser';
 import { isBetterMark } from '../../common/result-comparison';
+import { determineSeason } from '../../common/season';
 import { Athlete, Competition, Discipline, Result } from '../schemas';
 import { determineSportRank } from '../ua-ranks';
 import { calculateWaScore } from '../wa-scoring';
@@ -29,7 +31,7 @@ export class ResultsService extends CrudService {
     if (query.seasonId) filter.season = query.seasonId;
     return this.model
       .find(filter)
-      .sort({ date: -1 })
+      .sort({ date: -1, _id: -1 })
       .populate({
         path: 'athlete',
         select: 'lastName firstName middleName birthDate gender club school',
@@ -65,8 +67,10 @@ export class ResultsService extends CrudService {
     }
 
     let cat = data.ageCategory;
-    if (athlete) {
+    if (athlete && !cat) {
       cat = ageCategory(athlete.birthDate, competition.date);
+    }
+    if (athlete) {
       if (competition.ageCategories.length && !competition.ageCategories.includes(cat)) {
         throw new BadRequestException(`Категорія ${cat} не допускається до цього змагання`);
       }
@@ -126,6 +130,7 @@ export class ResultsService extends CrudService {
   async getLeaderboard(params: {
     mode?: 'sb' | 'pb';
     year?: number;
+    indoor?: 'ALL' | 'outdoor' | 'indoor' | string;
     category?: string;
     gender?: 'M' | 'F' | 'ALL' | string;
     disciplineId?: string;
@@ -134,12 +139,12 @@ export class ResultsService extends CrudService {
     const mode = params.mode || 'sb';
     const limit = params.limit ?? 10;
 
-    // 1. Determine all available years from competitions
-    const allCompDates = await this.competitions.find({}, 'date').lean();
+    // 1. Determine all available season years from competitions
+    const allCompDates = await this.competitions.find({}, 'date name').lean();
     const yearSet = new Set<number>();
     for (const c of allCompDates) {
       if (c.date) {
-        yearSet.add(new Date(c.date).getFullYear());
+        yearSet.add(determineSeason(c.date, c.name).year);
       }
     }
     const availableYears = Array.from(yearSet).sort((a, b) => b - a);
@@ -154,12 +159,6 @@ export class ResultsService extends CrudService {
 
     if (params.disciplineId) {
       filter.discipline = params.disciplineId;
-    }
-
-    if (mode === 'sb') {
-      const startOfYear = new Date(targetYear, 0, 1);
-      const endOfYear = new Date(targetYear, 11, 31, 23, 59, 59, 999);
-      filter.date = { $gte: startOfYear, $lte: endOfYear };
     }
 
     const rawResults = await this.model
@@ -181,12 +180,24 @@ export class ResultsService extends CrudService {
     for (const r of rawResults) {
       const athlete = r.athlete as any;
       const discipline = r.discipline as any;
+      const season = r.season as any;
       if (!athlete || !discipline) continue;
+
+      if (mode === 'sb') {
+        const sYear = season?.year ?? (r.date ? determineSeason(r.date).year : null);
+        if (sYear !== targetYear) continue;
+      }
+
+      const isIndoor = Boolean(season?.indoor);
+      if (params.indoor === 'indoor' && !isIndoor) continue;
+      if (params.indoor === 'outdoor' && isIndoor) continue;
 
       const gender = athlete.gender;
       if (params.gender && params.gender !== 'ALL' && params.gender !== gender) continue;
 
-      const cat = r.ageCategory || ageCategory(athlete.birthDate, r.date);
+      const cat = athlete.birthDate
+        ? ageCategory(athlete.birthDate, r.date)
+        : r.ageCategory || 'ADULT';
       if (params.category && params.category !== 'ALL' && cat !== params.category) continue;
 
       const groupKey = `${discipline._id}__${cat}__${gender}`;
@@ -268,6 +279,7 @@ export class ResultsService extends CrudService {
         sportRank: r.rank,
         waScore: r.waScore,
         date: r.date,
+        indoor: Boolean((r.season as any)?.indoor),
         competition: {
           _id: String(r.competition?._id ?? ''),
           name: r.competition?.name ?? '',
@@ -289,9 +301,9 @@ export class ResultsService extends CrudService {
       });
     }
 
-    // Sort groups: discipline name -> category -> gender (M then F)
+    // Sort groups: athletic discipline order -> category -> gender (M then F)
     groups.sort((a, b) => {
-      const nameComp = (a.discipline.name || '').localeCompare(b.discipline.name || '');
+      const nameComp = compareDisciplineNames(a.discipline.name, b.discipline.name);
       if (nameComp !== 0) return nameComp;
       const catComp = getCatWeight(a.category) - getCatWeight(b.category);
       if (catComp !== 0) return catComp;

@@ -15,7 +15,10 @@ export class SchoolsService extends CrudService {
   }
 
   async findAll() {
-    const schools = await this.model.find().sort({ name: 1 }).lean();
+    const schools = await this.model
+      .find({ name: { $not: /особист/i } })
+      .sort({ name: 1 })
+      .lean();
     const counts = await this.athletes.aggregate([
       { $match: { school: { $ne: null } } },
       { $group: { _id: '$school', count: { $sum: 1 } } },

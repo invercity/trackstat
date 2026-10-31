@@ -219,14 +219,14 @@ export default function RankingsPage() {
                     {t('rankings.noAthletes')}
                   </div>
                 ) : (
-                  <Table responsive hover className="mb-0 align-middle">
+                  <Table responsive hover className="table-fixed mb-0 align-middle">
                     <thead className="table-light small text-muted">
                       <tr>
-                        <th style={{ width: '55px' }} className="text-center">#</th>
-                        <th>{t('f.athlete')}</th>
-                        <th>{t('rankings.school')}</th>
+                        <th className="col-idx text-center">#</th>
+                        <th className="col-athlete">{t('f.athlete')}</th>
+                        <th className="col-school">{t('rankings.school')}</th>
                         <th className="d-none d-md-table-cell">{t('rankings.scoredStarts')}</th>
-                        <th style={{ minWidth: '120px' }} className="text-end pe-3">{t('rankings.totalPoints')}</th>
+                        <th className="col-date text-end pe-3">{t('rankings.totalPoints')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -326,15 +326,15 @@ export default function RankingsPage() {
                     {t('rankings.noSchools')}
                   </div>
                 ) : (
-                  <Table responsive hover className="mb-0 align-middle">
+                  <Table responsive hover className="table-fixed mb-0 align-middle">
                     <thead className="table-light small text-muted">
                       <tr>
-                        <th style={{ width: '55px' }} className="text-center">#</th>
+                        <th className="col-idx text-center">#</th>
                         <th>{t('rankings.school')}</th>
-                        <th>{t('rankings.city')}</th>
-                        <th className="text-center">{t('rankings.athletesCount')}</th>
-                        <th style={{ minWidth: '120px' }} className="text-end">{t('rankings.totalPoints')}</th>
-                        <th style={{ width: '130px' }} className="text-center">Склад</th>
+                        <th className="col-location">{t('rankings.city')}</th>
+                        <th className="col-level text-center">{t('rankings.athletesCount')}</th>
+                        <th className="col-date text-end">{t('rankings.totalPoints')}</th>
+                        <th className="col-mark text-center">Склад</th>
                       </tr>
                     </thead>
                     <tbody>

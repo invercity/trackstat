@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ageCategory } from '../../common/age-category';
 import { CrudService } from '../../common/crud';
+import { compareDisciplineNames } from '../../common/protocol-parser';
 import { pickBestMark } from '../../common/result-comparison';
 import { Athlete, Result } from '../schemas';
 
@@ -150,29 +151,33 @@ export class AthletesService extends CrudService {
       return m;
     };
 
-    const personalBests = [...groupBy(rows, (r) => oid(r.discipline)).values()].map((list) => {
-      const type = list[0]?.discipline?.type || 'time';
-      const pick = (l: any[]) => {
-        const best = pickBestMark(l, type);
-        return best ? slim(best) : null;
-      };
-      return {
-        discipline: list[0].discipline,
-        overall: pick(list),
-        outdoor: pick(list.filter((r) => !r.season.indoor)),
-        indoor: pick(list.filter((r) => r.season.indoor)),
-      };
-    });
+    const personalBests = [...groupBy(rows, (r) => oid(r.discipline)).values()]
+      .map((list) => {
+        const type = list[0]?.discipline?.type || 'time';
+        const pick = (l: any[]) => {
+          const best = pickBestMark(l, type);
+          return best ? slim(best) : null;
+        };
+        return {
+          discipline: list[0].discipline,
+          overall: pick(list),
+          outdoor: pick(list.filter((r) => !r.season.indoor)),
+          indoor: pick(list.filter((r) => r.season.indoor)),
+        };
+      })
+      .sort((a, b) => compareDisciplineNames(a.discipline?.name, b.discipline?.name));
 
     const seasonBests = [...groupBy(rows, (r) => oid(r.season)).values()]
       .map((list) => {
         const sType = (l: any[]) => l[0]?.discipline?.type || 'time';
         return {
           season: list[0].season,
-          results: [...groupBy(list, (r) => oid(r.discipline)).values()].map((l) => {
-            const b = pickBestMark(l, sType(l))!;
-            return { discipline: b.discipline, ...slim(b) };
-          }),
+          results: [...groupBy(list, (r) => oid(r.discipline)).values()]
+            .map((l) => {
+              const b = pickBestMark(l, sType(l))!;
+              return { discipline: b.discipline, ...slim(b) };
+            })
+            .sort((a, b) => compareDisciplineNames(a.discipline?.name, b.discipline?.name)),
         };
       })
       .sort((a, b) => b.season.year - a.season.year || Number(a.season.indoor) - Number(b.season.indoor));

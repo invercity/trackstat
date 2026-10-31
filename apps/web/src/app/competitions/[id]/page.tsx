@@ -11,7 +11,7 @@ import MarkDisplay from '@/components/ui/MarkDisplay';
 import PageHeader from '@/components/ui/PageHeader';
 import SchoolLink from '@/components/ui/SchoolLink';
 import { useFetch } from '@/lib/api';
-import { compareResults, formatDate, fullName } from '@/lib/format';
+import { compareDisciplines, compareResults, formatDate, fullName } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import type { Competition, Discipline, Result } from '@/lib/types';
 
@@ -118,7 +118,7 @@ export default function CompetitionPage() {
     });
     const groups = Array.from(map.values());
     groups.sort((a, b) => {
-      const nameComp = (dName(a.d) || '').localeCompare(dName(b.d) || '');
+      const nameComp = compareDisciplines(a.d.name, b.d.name);
       if (nameComp !== 0) return nameComp;
       const gWeight = (g: string) => (g === 'M' ? 1 : g === 'F' ? 2 : 3);
       const genComp = gWeight(a.gender) - gWeight(b.gender);
@@ -145,9 +145,9 @@ export default function CompetitionPage() {
 
     const groups = Array.from(map.values());
 
-    // Sort by discipline name, then by gender (M then F), then by category order, then by round (heats first, finals second)
+    // Sort by athletic discipline order, then by gender (M then F), then by category order, then by round (heats first, finals second)
     groups.sort((a, b) => {
-      const nameComp = (dName(a.d) || '').localeCompare(dName(b.d) || '');
+      const nameComp = compareDisciplines(a.d.name, b.d.name);
       if (nameComp !== 0) return nameComp;
       const gWeight = (g: string) => (g === 'M' ? 1 : g === 'F' ? 2 : 3);
       const genComp = gWeight(a.gender) - gWeight(b.gender);
@@ -190,8 +190,8 @@ export default function CompetitionPage() {
                   {c.endDate && <span>– {formatDate(c.endDate)}</span>}
                   {c.location && <span>· {c.location}</span>}
                   {c.season?.label && <span>· {c.season.label}</span>}
-                  {c.ageCategories.map((x) => (
-                    <CategoryBadge key={x} category={x} className="ms-1" />
+                  {(c.ageCategories.length > 0 ? c.ageCategories : availableCategories).map((x) => (
+                    <CategoryBadge key={x} category={x} variant="colored" className="ms-1" />
                   ))}
                 </div>
               }
@@ -235,20 +235,22 @@ export default function CompetitionPage() {
                     Жінки
                   </ToggleButton>
                 </ButtonGroup>
-                <ButtonGroup size="sm">
-                  <Button
-                    variant={viewMode === 'categories' ? 'primary' : 'outline-secondary'}
-                    onClick={() => setViewMode('categories')}
-                  >
-                    🏷️ {t('c.viewCategories')}
-                  </Button>
-                  <Button
-                    variant={viewMode === 'absolute' ? 'primary' : 'outline-secondary'}
-                    onClick={() => setViewMode('absolute')}
-                  >
-                    ⚡ {t('c.viewAbsolute')}
-                  </Button>
-                </ButtonGroup>
+                {availableCategories.length > 1 && (
+                  <ButtonGroup size="sm">
+                    <Button
+                      variant={viewMode === 'categories' ? 'primary' : 'outline-secondary'}
+                      onClick={() => setViewMode('categories')}
+                    >
+                      🏷️ {t('c.viewCategories')}
+                    </Button>
+                    <Button
+                      variant={viewMode === 'absolute' ? 'primary' : 'outline-secondary'}
+                      onClick={() => setViewMode('absolute')}
+                    >
+                      ⚡ {t('c.viewAbsolute')}
+                    </Button>
+                  </ButtonGroup>
+                )}
               </div>
             </div>
 
@@ -287,9 +289,13 @@ export default function CompetitionPage() {
             <State
               loading={results.loading}
               error={results.error}
-              empty={viewMode === 'categories' ? displayedCategoryGroups.length === 0 : displayedAbsoluteGroups.length === 0}
+              empty={
+                viewMode === 'categories' || availableCategories.length <= 1
+                  ? displayedCategoryGroups.length === 0
+                  : displayedAbsoluteGroups.length === 0
+              }
             >
-              {viewMode === 'categories' ? (
+              {viewMode === 'categories' || availableCategories.length <= 1 ? (
                 displayedCategoryGroups.map(({ key, d, gender, category, round, list }) => (
                   <Card key={key} className="mb-3">
                     <Card.Header className="d-flex align-items-center justify-content-between py-2">
@@ -297,7 +303,7 @@ export default function CompetitionPage() {
                         <span className="fw-bold">{dName(d)}</span>
                         {gender === 'M' && <Badge bg="primary">Чоловіки</Badge>}
                         {gender === 'F' && <Badge bg="danger">Жінки</Badge>}
-                        {category !== 'OTHER' && (
+                        {availableCategories.length > 1 && category !== 'OTHER' && (
                           <CategoryBadge category={category} variant="colored" />
                         )}
                         {round && (
@@ -310,16 +316,15 @@ export default function CompetitionPage() {
                         {list.length} {t('school.athletesCount')}
                       </Badge>
                     </Card.Header>
-                    <Table responsive className="m-0 align-middle">
+                    <Table responsive className="table-fixed m-0 align-middle">
                       <thead>
                         <tr>
-                          <th>#</th>
+                          <th className="col-idx">#</th>
                           <th>{t('f.athlete')}</th>
-                          <th>{t('f.value')}</th>
-                          <th>{t('f.rank')}</th>
-                          <th>{t('f.waScore')}</th>
-                          <th>{t('f.teamPoints')}</th>
-                          <th>{t('f.round')}</th>
+                          <th className="col-mark">{t('f.value')}</th>
+                          <th className="col-rank">{t('f.rank')}</th>
+                          <th className="col-points">{t('f.teamPoints')}</th>
+                          <th className="col-round">{t('f.round')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -360,8 +365,20 @@ export default function CompetitionPage() {
                                 wind={r.wind}
                               />
                             </td>
-                            <td>{r.rank ? <Badge bg="primary">{r.rank}</Badge> : '–'}</td>
-                            <td>{r.waScore !== undefined && r.waScore !== null ? <Badge bg="info" text="dark">{r.waScore}</Badge> : '–'}</td>
+                            <td>
+                              <div className="d-flex align-items-center gap-1">
+                                {r.rank ? (
+                                  <Badge bg="primary">{r.rank}</Badge>
+                                ) : r.waScore === undefined || r.waScore === null ? (
+                                  <span className="text-muted">–</span>
+                                ) : null}
+                                {r.waScore !== undefined && r.waScore !== null && (
+                                  <small className="text-muted" title="Очки World Athletics">
+                                    {r.waScore}
+                                  </small>
+                                )}
+                              </div>
+                            </td>
                             <td>{r.teamPoints !== undefined && r.teamPoints !== null ? r.teamPoints : (r.notes?.includes('Ос.') ? 'Ос.' : '–')}</td>
                             <td>{r.round ?? (r.notes ?? '')}</td>
                           </tr>
@@ -389,17 +406,16 @@ export default function CompetitionPage() {
                         {list.length} {t('school.athletesCount')}
                       </Badge>
                     </Card.Header>
-                    <Table responsive className="m-0 align-middle">
+                    <Table responsive className="table-fixed m-0 align-middle">
                       <thead>
                         <tr>
-                          <th>#</th>
+                          <th className="col-idx">#</th>
                           <th>{t('f.athlete')}</th>
-                          <th>{t('f.category')}</th>
-                          <th>{t('f.value')}</th>
-                          <th>{t('f.rank')}</th>
-                          <th>{t('f.waScore')}</th>
-                          <th>{t('f.teamPoints')}</th>
-                          <th>{t('f.round')}</th>
+                          <th className="col-cat">{t('f.category')}</th>
+                          <th className="col-mark">{t('f.value')}</th>
+                          <th className="col-rank">{t('f.rank')}</th>
+                          <th className="col-points">{t('f.teamPoints')}</th>
+                          <th className="col-round">{t('f.round')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -443,8 +459,20 @@ export default function CompetitionPage() {
                                 wind={r.wind}
                               />
                             </td>
-                            <td>{r.rank ? <Badge bg="primary">{r.rank}</Badge> : '–'}</td>
-                            <td>{r.waScore !== undefined && r.waScore !== null ? <Badge bg="info" text="dark">{r.waScore}</Badge> : '–'}</td>
+                            <td>
+                              <div className="d-flex align-items-center gap-1">
+                                {r.rank ? (
+                                  <Badge bg="primary">{r.rank}</Badge>
+                                ) : r.waScore === undefined || r.waScore === null ? (
+                                  <span className="text-muted">–</span>
+                                ) : null}
+                                {r.waScore !== undefined && r.waScore !== null && (
+                                  <small className="text-muted" title="Очки World Athletics">
+                                    {r.waScore}
+                                  </small>
+                                )}
+                              </div>
+                            </td>
                             <td>{r.teamPoints !== undefined && r.teamPoints !== null ? r.teamPoints : (r.notes?.includes('Ос.') ? 'Ос.' : '–')}</td>
                             <td>{r.round ?? (r.notes ?? '')}</td>
                           </tr>

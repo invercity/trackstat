@@ -78,7 +78,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               as={Link}
               href="/admin/import"
               active={pathname === '/admin/import'}
-              className="fw-bold text-success border border-success"
+              className={`fw-bold border border-success ${
+                pathname === '/admin/import' ? 'bg-success text-white' : 'text-success'
+              }`}
             >
               📥 {t('admin.import')}
             </Nav.Link>
@@ -88,7 +90,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               as={Link}
               href="/admin/import-web"
               active={pathname === '/admin/import-web'}
-              className="fw-bold text-primary border border-primary"
+              className={`fw-bold border border-primary ${
+                pathname === '/admin/import-web' ? 'bg-primary text-white' : 'text-primary'
+              }`}
             >
               🌐 {t('admin.importWeb')}
             </Nav.Link>

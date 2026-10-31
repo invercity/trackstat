@@ -29,6 +29,7 @@ export interface ParsedMarkSingle {
   status: string;
   val: number | null;
   timing?: 'manual' | 'electronic';
+  wind?: number;
   raw: string;
 }
 
@@ -36,7 +37,19 @@ export function parseSingleMark(str: string): ParsedMarkSingle {
   if (!str) {
     return { status: 'DNS', val: null, raw: str };
   }
-  const s = str.trim().toUpperCase().replace(/,/g, '.');
+  let s = str.trim().toUpperCase().replace(/,/g, '.');
+  let wind: number | undefined;
+
+  // Handle jump/sprint mark with wind after slash, e.g. "5.67/0.0", "5.44/+2.4", "10.97/-0.6"
+  if (s.includes('/')) {
+    const slashParts = s.split('/');
+    s = slashParts[0].trim();
+    const windStr = slashParts[1]?.trim();
+    if (windStr && /^[+-]?\d+(?:\.\d+)?$/.test(windStr)) {
+      wind = parseFloat(windStr);
+    }
+  }
+
   if (['DNS', 'DNF', 'DQ', 'NM', 'Ф-DNS', 'Ф-DNF', 'Ф-DQ', 'Ф-NM'].includes(s)) {
     const cleanStatus = s.replace('Ф-', '');
     return { status: cleanStatus, val: null, raw: str };
@@ -59,13 +72,14 @@ export function parseSingleMark(str: string): ParsedMarkSingle {
       status: 'OK',
       val: Math.round((mins * 60 + secs) * 100) / 100,
       timing,
+      wind,
       raw: str,
     };
   }
 
-  // Format mm.ss.xx (with 2 dots)
+  // Format mm.ss.xx (with 2 dots, strictly numeric parts)
   const dotParts = s.split('.');
-  if (dotParts.length === 3) {
+  if (dotParts.length === 3 && /^\d+\.\d+\.\d+$/.test(s)) {
     const mins = parseFloat(dotParts[0]);
     const secs = parseFloat(dotParts[1] + '.' + dotParts[2]);
     if (dotParts[2].length === 1) {
@@ -77,6 +91,7 @@ export function parseSingleMark(str: string): ParsedMarkSingle {
       status: 'OK',
       val: Math.round((mins * 60 + secs) * 100) / 100,
       timing,
+      wind,
       raw: str,
     };
   }
@@ -94,6 +109,7 @@ export function parseSingleMark(str: string): ParsedMarkSingle {
       status: 'OK',
       val: Math.round(num * 100) / 100,
       timing,
+      wind,
       raw: str,
     };
   }
@@ -105,6 +121,7 @@ export interface ParsedProtocolValue {
   status: string;
   val: number | null;
   timing?: 'manual' | 'electronic';
+  wind?: number;
   isFinal: boolean;
   heatStr?: string;
   heatVal?: number | null;
@@ -137,6 +154,7 @@ export function parseProtocolValue(str: string): ParsedProtocolValue {
       status: finalParsed.status !== 'UNKNOWN' ? finalParsed.status : 'OK',
       val: finalParsed.val,
       timing: finalParsed.timing,
+      wind: finalParsed.wind ?? heatParsed?.wind,
       isFinal: true,
       heatStr: heatRaw || undefined,
       heatVal: heatParsed?.val ?? null,
@@ -154,6 +172,7 @@ export function parseProtocolValue(str: string): ParsedProtocolValue {
     status: single.status,
     val: single.val,
     timing: single.timing,
+    wind: single.wind,
     isFinal: false,
     raw: str,
   };
@@ -166,7 +185,9 @@ export function matchStandardDisciplineName(title: string): string | null {
   if (/110\s*м?\s*(?:з\/б|з\.б|з\s*бар)/i.test(t)) return '110 м з бар’єрами';
   if (/100\s*м?\s*(?:з\/б|з\.б|з\s*бар)/i.test(t)) return '100 м з бар’єрами';
   if (/60\s*м?\s*(?:з\/б|з\.б|з\s*бар)/i.test(t)) return '60 м з бар’єрами';
+  if (/300\s*м?\s*(?:з\/б|з\.б|з\s*бар)/i.test(t)) return '300 м з бар’єрами';
   if (/400\s*м?\s*(?:з\/б|з\.б|з\s*бар)/i.test(t)) return '400 м з бар’єрами';
+  if (/2000\s*м?\s*(?:з\/п|з\.п|з\s*перешк|перешк)/i.test(t)) return '2000 м з перешкодами';
   if (/3000\s*м?\s*(?:з\/п|з\.п|з\s*перешк|перешк)/i.test(t)) return '3000 м з перешкодами';
 
   // 2. Relays
@@ -204,4 +225,89 @@ export function matchStandardDisciplineName(title: string): string | null {
   if (/десятибор/i.test(t)) return 'Десятиборство';
 
   return null;
+}
+
+/**
+ * Повертає числовий порядок легкоатлетичної дисципліни (60м -> 100м -> 200м -> 400м -> 800м -> 1500м -> 3000м -> 5000м -> 10000м -> бар'єри -> перешкоди -> стрибки -> метання -> багатоборства -> естафети).
+ */
+export function getDisciplineSortWeight(name?: string | null): number {
+  if (!name) return 9999;
+  const t = name.toLowerCase().replace(/\s+/g, ' ').trim();
+
+  // 1. Relays (500+)
+  if (t.includes('естафет') || /4\s*[хx]\s*\d+/i.test(t)) {
+    if (/4\s*[хx]\s*100/i.test(t)) return 510;
+    if (/100\s*\+\s*200/i.test(t)) return 520;
+    if (/4\s*[хx]\s*400/i.test(t)) return 530;
+    if (/4\s*[хx]\s*800/i.test(t)) return 540;
+    return 550;
+  }
+
+  // 2. Combined events (400+)
+  if (t.includes('п’ятибор') || t.includes("п'ятибор") || t.includes('трибор')) return 405;
+  if (t.includes('семибор')) return 410;
+  if (t.includes('десятибор')) return 420;
+
+  // 3. Throws (300+)
+  if (t.includes('ядр')) return 310;
+  if (t.includes('диск')) return 320;
+  if (t.includes('молот')) return 330;
+  if (t.includes('спис')) return 340;
+
+  // 4. Jumps (200+)
+  if (t.includes('висот')) return 210;
+  if (t.includes('жердин')) return 220;
+  if (t.includes('довжин')) return 230;
+  if (t.includes('потрійн')) return 240;
+
+  // 5. Hurdles & Steeplechase (100+)
+  if (/бар|з\/б|з\.б/i.test(t)) {
+    if (/\b60\b/.test(t)) return 110;
+    if (/\b100\b/.test(t)) return 120;
+    if (/\b110\b/.test(t)) return 130;
+    if (/\b300\b/.test(t)) return 135;
+    if (/\b400\b/.test(t)) return 140;
+    return 145;
+  }
+  if (/перешк|з\/п|з\.п/i.test(t)) {
+    if (/\b1500\b/.test(t)) return 150;
+    if (/\b2000\b/.test(t)) return 155;
+    if (/\b3000\b/.test(t)) return 160;
+    return 165;
+  }
+
+  // 6. Cross-country / Non-stadium (600+, after all stadium disciplines)
+  if (t.includes('крос')) {
+    const kmMatch = t.match(/(\d+)\s*км/);
+    return 600 + (kmMatch ? parseInt(kmMatch[1], 10) : 5);
+  }
+
+  // 7. Flat track running (1..89): extract distance in meters
+  const mMatch = t.match(/(?:^|\D)(\d+)\s*(?:м|m)(?:$|[^а-яіїєґa-z])/i);
+  if (mMatch) {
+    const meters = parseInt(mMatch[1], 10);
+    if (meters === 60) return 10;
+    if (meters === 100) return 20;
+    if (meters === 200) return 30;
+    if (meters === 300) return 35;
+    if (meters === 400) return 40;
+    if (meters === 600) return 45;
+    if (meters === 800) return 50;
+    if (meters === 1000) return 55;
+    if (meters === 1500) return 60;
+    if (meters === 2000) return 65;
+    if (meters === 3000) return 70;
+    if (meters === 5000) return 80;
+    if (meters === 10000) return 85;
+    return Math.min(89, Math.round(meters / 100));
+  }
+
+  return 900;
+}
+
+export function compareDisciplineNames(a?: string | null, b?: string | null): number {
+  const wA = getDisciplineSortWeight(a);
+  const wB = getDisciplineSortWeight(b);
+  if (wA !== wB) return wA - wB;
+  return (a || '').localeCompare(b || '');
 }

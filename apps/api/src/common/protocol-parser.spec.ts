@@ -1,6 +1,7 @@
 import { describe, it } from 'node:test';
 import * as assert from 'node:assert';
 import {
+  compareDisciplineNames,
   matchStandardDisciplineName,
   parseProtocolDob,
   parseProtocolValue,
@@ -76,6 +77,23 @@ describe('protocol-parser', () => {
       assert.strictEqual(parseProtocolValue('DQ').status, 'DQ');
       assert.strictEqual(parseProtocolValue('Ф-DNS').status, 'DNS');
     });
+
+    it('parses jump marks with wind after slash (e.g. 5.67/0.0 or 10.97/-0.6)', () => {
+      const p1 = parseProtocolValue('5.67/0.0');
+      assert.strictEqual(p1.status, 'OK');
+      assert.strictEqual(p1.val, 5.67);
+      assert.strictEqual(p1.wind, 0);
+
+      const p2 = parseProtocolValue('5.44/+2.4');
+      assert.strictEqual(p2.status, 'OK');
+      assert.strictEqual(p2.val, 5.44);
+      assert.strictEqual(p2.wind, 2.4);
+
+      const p3 = parseProtocolValue('10.97/-0.6');
+      assert.strictEqual(p3.status, 'OK');
+      assert.strictEqual(p3.val, 10.97);
+      assert.strictEqual(p3.wind, -0.6);
+    });
   });
 
   describe('matchStandardDisciplineName', () => {
@@ -104,6 +122,40 @@ describe('protocol-parser', () => {
       assert.strictEqual(matchStandardDisciplineName('4х100 м'), 'Естафета 4х100 м');
       assert.strictEqual(matchStandardDisciplineName('4х400 м'), 'Естафета 4х400 м');
       assert.strictEqual(matchStandardDisciplineName('4х800 м'), 'Естафета 4х800 м');
+    });
+  });
+
+  describe('compareDisciplineNames', () => {
+    it('sorts disciplines in official athletic order (stadium events first, then cross-country at the end)', () => {
+      const unordered = [
+        'Крос 4 км',
+        'Естафета 4х400 м',
+        '800 м',
+        '100 м',
+        'Стрибки у довжину',
+        '1500 м',
+        '60 м',
+        'Штовхання ядра',
+        '400 м',
+        '60 м з бар’єрами',
+        '200 м',
+        '3000 м',
+      ];
+      const sorted = [...unordered].sort(compareDisciplineNames);
+      assert.deepStrictEqual(sorted, [
+        '60 м',
+        '100 м',
+        '200 м',
+        '400 м',
+        '800 м',
+        '1500 м',
+        '3000 м',
+        '60 м з бар’єрами',
+        'Стрибки у довжину',
+        'Штовхання ядра',
+        'Естафета 4х400 м',
+        'Крос 4 км',
+      ]);
     });
   });
 });

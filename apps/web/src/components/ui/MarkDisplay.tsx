@@ -60,10 +60,9 @@ export default function MarkDisplay({
         </Badge>
       )}
       {waScore !== undefined && waScore !== null && (
-        <Badge bg="info" text="dark" style={{ fontSize: '0.75rem' }} title="World Athletics Score">
+        <small className="text-muted" title="Очки World Athletics">
           {waScore}
-          {showWaTag ? ' WA' : ''}
-        </Badge>
+        </small>
       )}
     </span>
   );

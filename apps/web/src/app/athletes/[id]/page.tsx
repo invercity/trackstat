@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { Badge, Card, Tab, Table, Tabs } from 'react-bootstrap';
@@ -10,9 +11,9 @@ import MarkDisplay from '@/components/ui/MarkDisplay';
 import PageHeader from '@/components/ui/PageHeader';
 import SchoolLink from '@/components/ui/SchoolLink';
 import { useFetch } from '@/lib/api';
-import { formatDate, fullName } from '@/lib/format';
+import { compareDisciplines, formatDate, fullName } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
-import type { Athlete, Mark, Result, Stats } from '@/lib/types';
+import type { Athlete, Mark, Result, Season, Stats } from '@/lib/types';
 
 function MarkCell({ m, type }: { m: Mark | null; type: any }) {
   if (!m) return <span className="text-muted">–</span>;
@@ -25,7 +26,6 @@ function MarkCell({ m, type }: { m: Mark | null; type: any }) {
         wind={m.wind}
         rank={m.rank}
         waScore={m.waScore}
-        showWaTag={true}
       />
       <div className="small text-muted">
         <Link href={`/competitions/${m.competition._id}`}>{m.competition.name}</Link>, {formatDate(m.date)}
@@ -49,6 +49,33 @@ export default function AthletePage() {
   const stats = useFetch<Stats>(`/athletes/${id}/stats`);
   const results = useFetch<Result[]>(`/results?athleteId=${id}`);
   const a = athlete.data;
+
+  const groupedResults = useMemo(() => {
+    if (!results.data || results.data.length === 0) return [];
+    const sorted = [...results.data].sort((r1, r2) => {
+      const t1 = new Date(r1.date).getTime();
+      const t2 = new Date(r2.date).getTime();
+      if (t2 !== t1) return t2 - t1;
+      return compareDisciplines(r1.discipline?.name, r2.discipline?.name);
+    });
+
+    const groupsMap = new Map<string, { season: Season; items: Result[] }>();
+    for (const r of sorted) {
+      const sKey = `${r.season?.year ?? 0}_${r.season?.indoor ? 'indoor' : 'outdoor'}`;
+      let grp = groupsMap.get(sKey);
+      if (!grp) {
+        grp = { season: r.season, items: [] };
+        groupsMap.set(sKey, grp);
+      }
+      grp.items.push(r);
+    }
+
+    return Array.from(groupsMap.values()).sort(
+      (g1, g2) =>
+        (g2.season?.year ?? 0) - (g1.season?.year ?? 0) ||
+        Number(Boolean(g1.season?.indoor)) - Number(Boolean(g2.season?.indoor)),
+    );
+  }, [results.data]);
 
   return (
     <>
@@ -96,10 +123,10 @@ export default function AthletePage() {
             <Tabs defaultActiveKey="pb" className="mb-3">
               <Tab eventKey="pb" title={t('a.pb')}>
                 <State loading={stats.loading} error={stats.error} empty={stats.data?.personalBests.length === 0}>
-                  <Table bordered responsive className="bg-white align-middle">
+                  <Table bordered responsive className="table-fixed bg-white align-middle">
                     <thead>
                       <tr>
-                        <th>{t('f.discipline')}</th>
+                        <th className="col-disc">{t('f.discipline')}</th>
                         <th>{t('a.outdoor')}</th>
                         <th>{t('a.indoor')}</th>
                       </tr>
@@ -122,11 +149,11 @@ export default function AthletePage() {
                   {stats.data?.seasonBests.map((sb) => (
                     <Card key={sb.season._id} className="mb-3">
                       <Card.Header className="fw-bold">{sb.season.label}</Card.Header>
-                      <Table responsive className="m-0 align-middle">
+                      <Table responsive className="table-fixed m-0 align-middle">
                         <tbody>
                           {sb.results.map((r) => (
                             <tr key={r.discipline._id}>
-                              <td style={{ width: '30%' }}>{dName(r.discipline)}</td>
+                              <td className="col-disc">{dName(r.discipline)}</td>
                               <td><MarkCell m={r} type={r.discipline.type} /></td>
                             </tr>
                           ))}
@@ -138,45 +165,74 @@ export default function AthletePage() {
               </Tab>
 
               <Tab eventKey="all" title={t('a.results')}>
-                <State loading={results.loading} error={results.error} empty={results.data?.length === 0}>
-                  <Table bordered responsive className="bg-white align-middle">
-                    <thead>
-                      <tr>
-                        <th>{t('f.date')}</th>
-                        <th>{t('f.competition')}</th>
-                        <th>{t('f.season')}</th>
-                        <th>{t('f.discipline')}</th>
-                        <th>{t('f.value')}</th>
-                        <th>{t('f.rank')}</th>
-                        <th>{t('f.waScore')}</th>
-                        <th>{t('f.place')}</th>
-                        <th>{t('f.category')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {results.data?.map((r) => (
-                        <tr key={r._id}>
-                          <td>{formatDate(r.date)}</td>
-                          <td><Link href={`/competitions/${r.competition._id}`}>{r.competition.name}</Link></td>
-                          <td>{r.season.label}</td>
-                          <td>{dName(r.discipline)}{r.round && ` (${r.round})`}</td>
-                          <td>
-                            <MarkDisplay
-                              value={r.value}
-                              type={r.discipline.type}
-                              timing={r.timing}
-                              status={r.status}
-                              wind={r.wind}
-                            />
-                          </td>
-                          <td>{r.rank ? <Badge bg="primary">{r.rank}</Badge> : '–'}</td>
-                          <td>{r.waScore !== undefined && r.waScore !== null ? <Badge bg="info" text="dark">{r.waScore}</Badge> : '–'}</td>
-                          <td>{r.place ?? '–'}</td>
-                          <td><CategoryBadge category={r.ageCategory} /></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </Table>
+                <State loading={results.loading} error={results.error} empty={groupedResults.length === 0}>
+                  {groupedResults.map((grp) => {
+                    const isIndoor = Boolean(grp.season?.indoor);
+                    return (
+                      <Card key={`${grp.season?._id || grp.season?.label}`} className="mb-3 shadow-sm border-0">
+                        <Card.Header className="d-flex align-items-center justify-content-between bg-white py-2 border-bottom">
+                          <div className="d-flex align-items-center gap-2">
+                            <span className="fw-bold">{grp.season?.label}</span>
+                            <Badge bg={isIndoor ? 'info' : 'success'} text={isIndoor ? 'dark' : undefined} className="fw-normal">
+                              {isIndoor ? '🏢 Indoor (У приміщенні)' : '🏟️ Outdoor (Стадіон)'}
+                            </Badge>
+                          </div>
+                          <Badge bg="light" text="dark" className="border">
+                            {grp.items.length}
+                          </Badge>
+                        </Card.Header>
+                        <Table bordered responsive className="table-fixed bg-white align-middle m-0">
+                          <thead className="table-light">
+                            <tr>
+                              <th className="col-date">{t('f.date')}</th>
+                              <th>{t('f.competition')}</th>
+                              <th className="col-season">{t('f.season')}</th>
+                              <th className="col-disc-md">{t('f.discipline')}</th>
+                              <th className="col-mark">{t('f.value')}</th>
+                              <th className="col-rank">{t('f.rank')}</th>
+                              <th className="col-idx">{t('f.place')}</th>
+                              <th className="col-cat">{t('f.category')}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {grp.items.map((r) => (
+                              <tr key={r._id}>
+                                <td>{formatDate(r.date)}</td>
+                                <td><Link href={`/competitions/${r.competition._id}`}>{r.competition.name}</Link></td>
+                                <td>{r.season.label}</td>
+                                <td>{dName(r.discipline)}{r.round && ` (${r.round})`}</td>
+                                <td>
+                                  <MarkDisplay
+                                    value={r.value}
+                                    type={r.discipline.type}
+                                    timing={r.timing}
+                                    status={r.status}
+                                    wind={r.wind}
+                                  />
+                                </td>
+                                <td>
+                                  <div className="d-flex align-items-center gap-1">
+                                    {r.rank ? (
+                                      <Badge bg="primary">{r.rank}</Badge>
+                                    ) : r.waScore === undefined || r.waScore === null ? (
+                                      <span className="text-muted">–</span>
+                                    ) : null}
+                                    {r.waScore !== undefined && r.waScore !== null && (
+                                      <small className="text-muted" title="Очки World Athletics">
+                                        {r.waScore}
+                                      </small>
+                                    )}
+                                  </div>
+                                </td>
+                                <td>{r.place ?? '–'}</td>
+                                <td><CategoryBadge category={r.ageCategory} /></td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </Table>
+                      </Card>
+                    );
+                  })}
                 </State>
               </Tab>
             </Tabs>

@@ -34,7 +34,8 @@ export default function CategoryBadge({
     }
   };
 
-  const label = t(`cat.${category}`) || category;
+  const rawTranslated = t(`cat.${category}`);
+  const label = rawTranslated.startsWith('cat.') ? category : rawTranslated;
 
   return (
     <Badge bg={getVariant(category)} className={className}>

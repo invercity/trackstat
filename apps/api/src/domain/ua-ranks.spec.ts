@@ -22,9 +22,21 @@ describe('determineSportRank', () => {
   });
 
   it('determines ranks for Women events', () => {
-    // Women 100m (МСМК: 11.34, МС: 11.84, КМС: 12.0)
+    // Women 100m (МСМК: 11.30a, МС: 11.80a, КМС: 12.0)
     assert.equal(determineSportRank('F', '100 м', 11.30, 'electronic'), 'МСМК');
     assert.equal(determineSportRank('F', '100 м', 11.75, 'electronic'), 'МС');
+  });
+
+  it('determines ranks for 60m indoor and additional disciplines from Normatyvy-2023', () => {
+    // Men 60m: МСМК 6.65a, МС 6.80a, КМС 6.7 (6.94a), І 7.0 (7.24a), ІІ 7.4 (7.64a)
+    assert.equal(determineSportRank('M', '60 м', 6.64, 'electronic', true), 'МСМК');
+    assert.equal(determineSportRank('M', '60 м', 6.78, 'electronic', true), 'МС');
+    assert.equal(determineSportRank('M', '60 м', 6.90, 'electronic', true), 'КМС');
+    assert.equal(determineSportRank('M', '60 м', 7.20, 'electronic', true), 'І');
+    assert.equal(determineSportRank('F', '60 м', 7.85, 'electronic', true), 'І');
+    assert.equal(determineSportRank('M', 'Стрибки у висоту', 1.95), 'І');
+    assert.equal(determineSportRank('M', '3000 м', 535.0, 'electronic', true), 'І');
+    assert.equal(determineSportRank('M', '2000 м з перешкодами', 365.0, 'electronic', true), 'І');
   });
 
   it('returns null if mark does not achieve minimum standard or discipline is unknown', () => {

@@ -16,7 +16,7 @@ import {
 } from 'react-bootstrap';
 import { api } from '@/lib/api';
 import PageHeader from '@/components/ui/PageHeader';
-import { formatDate } from '@/lib/format';
+import { compareDisciplines, formatDate } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import type {
   ParsedItemPreview,
@@ -32,7 +32,7 @@ export default function WebImportPage() {
 
   // Integrations state
   const [integrations, setIntegrations] = useState<WebIntegrationMeta[]>([]);
-  const [selectedIntegrationId, setSelectedIntegrationId] = useState<string>('uar');
+  const [selectedIntegrationId, setSelectedIntegrationId] = useState<string>('iks');
 
   // Years & Competitions state
   const [years, setYears] = useState<number[]>([]);
@@ -68,7 +68,7 @@ export default function WebImportPage() {
   const previewSectionRef = useRef<HTMLDivElement>(null);
   const commitResultRef = useRef<HTMLDivElement>(null);
 
-  // 1. Load integrations & years on mount
+  // 1. Load integrations on mount
   useEffect(() => {
     async function init() {
       try {
@@ -77,18 +77,47 @@ export default function WebImportPage() {
         if (intList.length > 0) {
           setSelectedIntegrationId(intList[0].id);
         }
-
-        const yearList = await api<number[]>('/web-import/uar/years');
-        setYears(yearList);
-        if (yearList.length > 0) {
-          setSelectedYear(yearList[0]);
-        }
       } catch (err: any) {
         setError(err.message || 'Не вдалося завантажити налаштування інтеграцій');
       }
     }
     init();
   }, []);
+
+  // 2. Load years when integration changes
+  useEffect(() => {
+    if (!selectedIntegrationId) return;
+
+    let isMounted = true;
+    async function fetchYears() {
+      try {
+        const yearList = await api<number[]>(`/web-import/${selectedIntegrationId}/years`);
+        if (isMounted) {
+          setYears(yearList);
+          if (yearList.length > 0) {
+            setSelectedYear((prev) => (yearList.includes(prev) ? prev : yearList[0]));
+          }
+        }
+      } catch (err: any) {
+        if (isMounted) setError(err.message || 'Не вдалося завантажити роки для обраного джерела');
+      }
+    }
+
+    fetchYears();
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedIntegrationId]);
+
+  // Handle changing integration
+  const handleSelectIntegration = (intg: WebIntegrationMeta) => {
+    if (selectedIntegrationId === intg.id) return;
+    setSelectedIntegrationId(intg.id);
+    setSelectedComp(null);
+    setPreviewData(null);
+    setPreviewItems([]);
+    setRegionFilter(intg.defaultRegion || 'Чернігівська');
+  };
 
   // 2. Load competitions when year or integration changes
   useEffect(() => {
@@ -199,7 +228,7 @@ export default function WebImportPage() {
   const uniqueDisciplines = useMemo(() => {
     const set = new Set<string>();
     previewItems.forEach((it) => set.add(it.disciplineCanonicalName));
-    return Array.from(set).sort();
+    return Array.from(set).sort(compareDisciplines);
   }, [previewItems]);
 
   const toggleSelectAll = (select: boolean) => {
@@ -233,7 +262,7 @@ export default function WebImportPage() {
           endDate: compEndDate || undefined,
           location: compLocation,
           level: compLevel,
-          seasonYear: selectedYear,
+          seasonYear: previewData?.competition.seasonYear || selectedYear,
         },
         items: previewItems.filter((it) => it.selected),
       };
@@ -290,7 +319,7 @@ export default function WebImportPage() {
               <Col md={6} lg={4} key={intg.id}>
                 <Card
                   className={`h-100 cursor-pointer border ${selectedIntegrationId === intg.id ? 'border-primary shadow-sm bg-primary bg-opacity-10' : 'border-light-subtle'}`}
-                  onClick={() => setSelectedIntegrationId(intg.id)}
+                  onClick={() => handleSelectIntegration(intg)}
                   style={{ cursor: 'pointer' }}
                 >
                   <Card.Body>
@@ -336,7 +365,9 @@ export default function WebImportPage() {
       <Card className="mb-4 shadow-sm border-0">
         <Card.Header className="bg-white py-3 border-bottom d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
           <div className="d-flex align-items-center gap-2">
-            <h2 className="h6 mb-0 fw-bold">2. Вибір змагання з UAR</h2>
+            <h2 className="h6 mb-0 fw-bold">
+              2. Вибір змагання з {selectedIntegrationId === 'iks' ? 'IKS' : 'UAR'}
+            </h2>
             <Badge bg="primary">{filteredCompetitions.length}</Badge>
           </div>
 
@@ -373,7 +404,7 @@ export default function WebImportPage() {
           {loadingCompetitions ? (
             <div className="text-center py-5 text-muted">
               <Spinner animation="border" size="sm" className="me-2" />
-              Завантаження календаря змагань з uar.com.ua...
+              Завантаження календаря змагань з {selectedIntegrationId === 'iks' ? 'iks.org.ua' : 'uar.com.ua'}...
             </div>
           ) : filteredCompetitions.length === 0 ? (
             <div className="text-center py-5 text-muted">Змагань за вибраними критеріями не знайдено</div>
@@ -398,7 +429,7 @@ export default function WebImportPage() {
                     const isSelected = selectedComp?.id === comp.id;
                     return (
                       <tr
-                        key={comp.id}
+                        key={`${comp.id}-${idx}`}
                         className={isSelected ? 'table-primary' : ''}
                         style={{ cursor: 'pointer' }}
                         onClick={() => handleSelectCompetition(comp)}
@@ -566,12 +597,12 @@ export default function WebImportPage() {
                   {loadingPreview ? (
                     <>
                       <Spinner animation="border" size="sm" />
-                      Завантаження протоколів з UAR...
+                      Завантаження протоколів з {selectedIntegrationId === 'iks' ? 'IKS' : 'UAR'}...
                     </>
                   ) : (
                     <>
                       <span>📥</span>
-                      Завантажити результати області з UAR
+                      Завантажити результати області з {selectedIntegrationId === 'iks' ? 'IKS' : 'UAR'}
                     </>
                   )}
                 </Button>
@@ -714,7 +745,7 @@ export default function WebImportPage() {
                 <th>Дисципліна & Раунд</th>
                 <th>Результат</th>
                 <th>Хронометраж</th>
-                <th>Розряд / WA</th>
+                <th>Розряд</th>
                 <th>Школа / Команда</th>
                 <th>Статус в базі</th>
               </tr>
@@ -784,7 +815,7 @@ export default function WebImportPage() {
                         </Badge>
                       )}
                       {item.waScore != null && (
-                        <span className="small text-muted">{item.waScore} WA</span>
+                        <span className="small text-muted">{item.waScore}</span>
                       )}
                     </td>
                     <td>

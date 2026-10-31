@@ -187,7 +187,7 @@ const dict = {
     'import.title': 'Імпорт протоколу змагань',
     'import.subtitle': 'Автоматичний парсинг офіційних протоколів змагань (.docx або .txt)',
     'importWeb.title': 'Імпорт результатів з Web (UAR / ФЛАУ)',
-    'importWeb.subtitle': 'Автоматична синхронізація результатів всеукраїнських змагань з сайту uar.com.ua',
+    'importWeb.subtitle': 'Автоматична синхронізація результатів всеукраїнських та обласних змагань (iks.org.ua, uar.com.ua)',
   },
   en: {
     'nav.home': 'Home',
@@ -373,7 +373,7 @@ const dict = {
     'import.title': 'Import Competition Protocol',
     'import.subtitle': 'Automated parsing of official competition protocols (.docx or .txt)',
     'importWeb.title': 'Import Results from Web (UAR / FPU)',
-    'importWeb.subtitle': 'Automated synchronization of Ukrainian athletics results from uar.com.ua',
+    'importWeb.subtitle': 'Automated synchronization of Ukrainian athletics results (iks.org.ua, uar.com.ua)',
   },
 } as const;
 
