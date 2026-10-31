@@ -20,7 +20,7 @@ import {
 } from './protocol-importer.service';
 import { IksIntegrationProvider } from './web-importer/providers/iks.provider';
 import { UarIntegrationProvider } from './web-importer/providers/uar.provider';
-import { detectCompetitionLevel } from './web-importer/web-importer.utils';
+import { detectCompetitionLevel, isFinalRoundLabel } from './web-importer/web-importer.utils';
 import {
   WebCompetitionItem,
   WebImportPreviewResponse,
@@ -121,9 +121,15 @@ export class WebImporterService {
       const disciplineCanonicalName =
         matchStandardDisciplineName(r.rawDisciplineName) || r.rawDisciplineName;
       const discDoc = discMap.get(disciplineCanonicalName);
+      const inferredDiscType: 'time' | 'distance' | 'points' =
+        (discDoc?.type as any) ||
+        (/борств/i.test(disciplineCanonicalName)
+          ? 'points'
+          : /стриб|висот|довжин|жердин|потрійн|ядр|спис|диск|молот/i.test(disciplineCanonicalName)
+            ? 'distance'
+            : 'time');
 
-      const isFinal =
-        r.rawRound.toLowerCase().includes('фінал') && !r.rawRound.toLowerCase().includes('1/2');
+      const isFinal = isFinalRoundLabel(r.rawRound);
       const round: 'фінал' | 'забіг' = isFinal ? 'фінал' : 'забіг';
 
       const lastName = r.lastName;
@@ -154,7 +160,7 @@ export class WebImporterService {
 
       // Timing detection
       let timing: 'manual' | 'electronic' | undefined;
-      if (discDoc?.type === 'time' || !discDoc) {
+      if (inferredDiscType === 'time') {
         if (
           cleanRawMark.endsWith('h') ||
           (cleanRawMark.includes(',') && cleanRawMark.split(',')[1]?.length === 1)
@@ -261,7 +267,7 @@ export class WebImporterService {
       items.push({
         id: `${integrationId}-${seq}`,
         selected: true,
-        place: r.placeNum,
+        place: isFinal ? r.placeNum : undefined,
         athleteName,
         lastName,
         firstName,
@@ -274,7 +280,7 @@ export class WebImporterService {
         schoolName: matchedSchoolName,
         disciplineCanonicalName,
         disciplineId: discDoc ? String((discDoc as any)._id) : undefined,
-        disciplineType: (discDoc?.type as any) || 'time',
+        disciplineType: inferredDiscType,
         eventHeader: `${r.rawDisciplineName} (${r.rawRound})`,
         round,
         rawMark: cleanRawMark,

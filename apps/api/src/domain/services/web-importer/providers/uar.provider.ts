@@ -7,11 +7,15 @@ import {
   WebIntegrationProvider,
 } from '../web-integration.interface';
 import {
+  computeOverallFinalPlaces,
   detectCompetitionLevel,
   detectGenderFromLabel,
   formatUkrainianName,
+  isFieldOrPointsDiscipline,
+  isFinalRoundLabel,
   parseUarDateToIso,
 } from '../web-importer.utils';
+import { parseProtocolValue } from '../../../../common/protocol-parser';
 
 export class UarIntegrationProvider implements WebIntegrationProvider {
   readonly meta: WebIntegrationMeta = {
@@ -113,18 +117,84 @@ export class UarIntegrationProvider implements WebIntegrationProvider {
 
     const results: RawWebParticipantResult[] = [];
     const normRegion = regionFilter.trim().toLowerCase();
+    const combinedEventsMap = new Map<
+      string,
+      { combinedName: string; categoryForApi: string; rawCatStr: string; gender: 'M' | 'F' }
+    >();
 
     for (const { row, data } of fetchedResults) {
       if (!data || !data.groups || !Array.isArray(data.groups)) continue;
 
+      const rawCombined = String(row[4] || '').trim();
       const rawDisciplineName = String(row[5] || '').trim();
-      const rawGenderStr = String(row[6] || '');
+      const rawGenderStr = String(row[6] || '').trim();
       const rawCatStr = String(row[7] || '').trim();
-      const rawRoundStr = String(row[8] || '').trim();
-      const gender = detectGenderFromLabel(rawGenderStr);
+      const rawRoundBase = String(row[8] || '').trim();
+      const gender = detectGenderFromLabel(`${rawGenderStr} ${rawCatStr}`);
+
+      const isCombinedSubEvent = !!(rawCombined && rawCombined !== rawDisciplineName);
+      if (isCombinedSubEvent) {
+        const categoryForApi =
+          !rawCatStr ||
+          rawCatStr.toLowerCase() === 'дорослі' ||
+          rawCatStr.toLowerCase() === rawGenderStr.toLowerCase()
+            ? rawGenderStr
+            : rawCatStr;
+        const combKey = `${rawCombined}|||${categoryForApi}`;
+        if (!combinedEventsMap.has(combKey)) {
+          combinedEventsMap.set(combKey, {
+            combinedName: rawCombined,
+            categoryForApi,
+            rawCatStr: rawCatStr || rawGenderStr,
+            gender,
+          });
+        }
+      }
+
+      const rawRoundStr = isCombinedSubEvent ? rawCombined : rawRoundBase;
+      const isFinal = isFinalRoundLabel(rawRoundBase, isCombinedSubEvent ? rawCombined : undefined);
+
+      // Compute true overall final place across all groups/heats BEFORE region filtering
+      let overallPlacesMap = new Map<any, number>();
+      if (isFinal) {
+        if (data.groups.length > 1) {
+          const allGroupEntries: Array<{ item: any; rawMark: string; heatPlace?: number }> = [];
+          for (const g of data.groups) {
+            for (const p of Array.isArray(g.participants) ? g.participants : []) {
+              const heatPlace =
+                p.placeOrLane && !isNaN(parseInt(p.placeOrLane, 10))
+                  ? parseInt(p.placeOrLane, 10)
+                  : undefined;
+              allGroupEntries.push({
+                item: p,
+                rawMark: String(p.mark || '').trim(),
+                heatPlace,
+              });
+            }
+          }
+          const higherWins = isFieldOrPointsDiscipline(rawDisciplineName, !!data.isTech);
+          overallPlacesMap = computeOverallFinalPlaces(allGroupEntries, higherWins);
+        } else if (data.groups.length === 1) {
+          for (const p of Array.isArray(data.groups[0].participants) ? data.groups[0].participants : []) {
+            const parsed = parseProtocolValue(String(p.mark || '').trim());
+            const pNum =
+              p.placeOrLane && !isNaN(parseInt(p.placeOrLane, 10))
+                ? parseInt(p.placeOrLane, 10)
+                : undefined;
+            if (pNum != null && parsed.status === 'OK' && parsed.val != null) {
+              overallPlacesMap.set(p, pNum);
+            }
+          }
+        }
+      }
 
       for (const group of data.groups) {
         const participants = Array.isArray(group.participants) ? group.participants : [];
+        const groupWindStr = group && group.wind != null ? String(group.wind).trim() : '';
+        const groupWind =
+          groupWindStr && /^[+-]?\d+(?:\.\d+)?$/.test(groupWindStr)
+            ? parseFloat(groupWindStr)
+            : undefined;
 
         for (const p of participants) {
           const participantRegion = String(p.region || '').trim();
@@ -134,10 +204,7 @@ export class UarIntegrationProvider implements WebIntegrationProvider {
 
           const isRelay = !!p.isRelay || !!data.isRelay;
           const rawMark = String(p.mark || '').trim();
-          const placeNum =
-            p.placeOrLane && !isNaN(parseInt(p.placeOrLane, 10))
-              ? parseInt(p.placeOrLane, 10)
-              : undefined;
+          const placeNum = isFinal ? overallPlacesMap.get(p) : undefined;
 
           if (isRelay) {
             const relayName = participantRegion ? `Естафета ${participantRegion}` : 'Естафетна команда';
@@ -172,9 +239,53 @@ export class UarIntegrationProvider implements WebIntegrationProvider {
               dobStr: p.dob ? String(p.dob).trim() : undefined,
               rawMark,
               placeNum,
+              wind: groupWind,
             });
           }
         }
+      }
+    }
+
+    // Fetch overall standings for any combined events (Семиборство, П'ятиборство, Десятиборство)
+    for (const combMeta of combinedEventsMap.values()) {
+      try {
+        const combRes = await fetch('https://uar.com.ua/api/combined-standings.php', {
+          method: 'POST',
+          cache: 'no-store',
+          headers: { 'Content-Type': 'application/json; charset=utf-8' },
+          body: JSON.stringify({
+            year: String(year),
+            id: compId,
+            combinedName: combMeta.combinedName,
+            category: combMeta.categoryForApi,
+          }),
+        });
+        if (!combRes.ok) continue;
+        const combData = await combRes.json();
+        const standings = Array.isArray(combData.standings) ? combData.standings : [];
+        standings.forEach((ath: any, idx: number) => {
+          const participantRegion = String(ath.region || '').trim();
+          if (normRegion && !participantRegion.toLowerCase().includes(normRegion)) {
+            return;
+          }
+          if (!ath.totalPoints || Number(ath.totalPoints) <= 0) return;
+          results.push({
+            rawDisciplineName: combMeta.combinedName,
+            rawCategory: combMeta.rawCatStr,
+            rawRound: 'Фінал',
+            gender: combMeta.gender,
+            isRelay: false,
+            participantRegion,
+            teamStr: participantRegion,
+            lastName: formatUkrainianName(ath.lastName),
+            firstName: formatUkrainianName(ath.firstName),
+            dobStr: ath.dob ? String(ath.dob).trim() : undefined,
+            rawMark: String(ath.totalPoints),
+            placeNum: idx + 1,
+          });
+        });
+      } catch {
+        // Ignore combined standings error
       }
     }
 

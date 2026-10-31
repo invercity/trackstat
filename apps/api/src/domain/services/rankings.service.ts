@@ -89,7 +89,12 @@ export class RankingsService {
       const level = comp?.level || 'obl';
       const aCat = r.ageCategory || a.ageCategory;
 
-      const place = typeof r.place === 'number' ? r.place : null;
+      const isPreliminaryRound = r.round && !r.round.toLowerCase().includes('фінал');
+      const isLocalCompetition = level === 'obl' || level === 'regional' || level === 'city';
+      const place =
+        typeof r.place === 'number' && (isLocalCompetition || !isPreliminaryRound)
+          ? r.place
+          : null;
       const pts = calculateResultPoints({
         level,
         category: aCat,
