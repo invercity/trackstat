@@ -43,6 +43,11 @@ export class SeasonsController extends CrudController {
   getCurrent() {
     return this.seasonsService.getCurrentSeason();
   }
+
+  @Get('active-context')
+  getActiveContext(@Query('year') year?: string) {
+    return this.seasonsService.getActiveYearContext(year);
+  }
 }
 
 @Controller('competitions')

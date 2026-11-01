@@ -37,6 +37,7 @@ import {
   SchoolsService,
   SeasonsService,
   WebImporterService,
+  AppCacheService,
 } from './services';
 
 @Module({
@@ -63,6 +64,7 @@ import {
     WebImportController,
   ],
   providers: [
+    AppCacheService,
     DisciplinesService,
     SeasonsService,
     AthletesService,
@@ -74,5 +76,6 @@ import {
     ProtocolImporterService,
     WebImporterService,
   ],
+  exports: [AppCacheService],
 })
 export class DomainModule {}

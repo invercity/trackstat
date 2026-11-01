@@ -1,11 +1,11 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ageCategory } from '../../common/age-category';
-import { determineSeason } from '../../common/season';
 import { calculateResultPoints } from '../ranking-rules';
 import { Athlete, Competition, Result, School, Season } from '../schemas';
 import { SeasonsService } from './seasons.service';
+import { AppCacheService } from '../../common/cache/app-cache.service';
 
 @Injectable()
 export class RankingsService {
@@ -16,38 +16,24 @@ export class RankingsService {
     @InjectModel(School.name) private schools: Model<School>,
     @InjectModel(Competition.name) private competitions: Model<Competition>,
     private readonly seasonsService: SeasonsService,
+    @Optional() private readonly cache: AppCacheService = new AppCacheService(),
   ) {}
 
+  /**
+   * Скидає кеш рейтингу та пов'язані дані
+   */
+  invalidateCache() {
+    this.seasonsService.invalidateYearContext();
+    this.cache.deletePrefix('rankings:');
+  }
+
   async getRankings(yearOrSeasonId?: string | number) {
-    const currentSpec = determineSeason();
-    const currentYear = currentSpec.year;
+    const { targetYear, allYears } = await this.seasonsService.getActiveYearContext(yearOrSeasonId);
 
-    // Ensure the current season exists in DB
-    await this.seasonsService.ensureSeason();
-
-    // Determine target year
-    let targetYear = currentYear;
-    if (yearOrSeasonId) {
-      const str = String(yearOrSeasonId).trim();
-      const num = parseInt(str, 10);
-      if (!isNaN(num) && num >= 1900 && num <= 2100 && str.length === 4) {
-        targetYear = num;
-      } else {
-        // Might be a Season ID
-        const matchedSeason = await this.seasons.findById(str).lean();
-        if (matchedSeason?.year) {
-          targetYear = matchedSeason.year;
-        }
-      }
-    }
-
-    // Available season years
-    const seasonYears = await this.seasons.distinct('year');
-    const allYears = Array.from(new Set([currentYear, ...seasonYears]))
-      .filter((y): y is number => typeof y === 'number' && !isNaN(y))
-      .sort((a, b) => b - a);
-
-    // Seasons matching the year (stadium + manege)
+    return this.cache.getOrSet(
+      `rankings:${targetYear}`,
+      async () => {
+        // Seasons matching the year (stadium + manege)
     const matchingSeasons = await this.seasons.find({ year: targetYear }).select('_id year indoor label').lean();
     const seasonIds = matchingSeasons.map((s) => s._id);
 
@@ -232,19 +218,22 @@ export class RankingsService {
       .sort((a, b) => b.totalPoints - a.totalPoints)
       .map((s, idx) => ({ ...s, rank: idx + 1 }));
 
-    return {
-      year: targetYear,
-      allYears,
-      categories: {
-        u16_m,
-        u16_f,
-        u18_m,
-        u18_f,
-        adult_m,
-        adult_f,
+        return {
+          year: targetYear,
+          allYears,
+          categories: {
+            u16_m,
+            u16_f,
+            u18_m,
+            u18_f,
+            adult_m,
+            adult_f,
+          },
+          schools: schoolsRanked.slice(0, 10),
+        };
       },
-      schools: schoolsRanked.slice(0, 10),
-    };
+      10 * 60 * 1000,
+    );
   }
 
   async getSchoolRankingDetails(schoolId: string, yearOrSeasonId?: string | number) {

@@ -2,6 +2,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import './globals.css';
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
+import pkg from '../../package.json';
 import { I18nProvider } from '@/lib/i18n';
 import AppNavbar from '@/components/AppNavbar';
 
@@ -23,9 +24,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <footer className="py-2 mt-auto text-center text-muted small">
             <div className="container">
               <a href="mailto:yermolenko.ua@gmail.com" className="text-decoration-none text-secondary fw-semibold">
-                Andrii Yermolenko
+                trackstat
               </a>{' '}
-              &copy; 2026
+              v{pkg.version} &copy; 2026
             </div>
           </footer>
         </I18nProvider>

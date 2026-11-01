@@ -79,7 +79,10 @@ const getResultGender = (r: Result): 'M' | 'F' | 'OTHER' => {
 
 const rank = (a: Result, b: Result) => {
   if (a.status !== b.status) return a.status === 'OK' ? -1 : 1;
-  if (a.place && b.place && a.place !== b.place) return a.place - b.place;
+  const isPrelim =
+    (a.round && !a.round.toLowerCase().includes('фінал')) ||
+    (b.round && !b.round.toLowerCase().includes('фінал'));
+  if (!isPrelim && a.place && b.place && a.place !== b.place) return a.place - b.place;
   return compareResults(a, b, a.discipline?.type || 'time');
 };
 
@@ -103,6 +106,34 @@ export default function CompetitionPage() {
     });
     return Array.from(set).sort((a, b) => getCategoryWeight(a) - getCategoryWeight(b));
   }, [results.data]);
+
+  // Finalists set to detect qualifiers in preliminary heats
+  const finalistAthleteIds = useMemo(() => {
+    if (!results.data) return new Set<string>();
+    const set = new Set<string>();
+    results.data.forEach((r) => {
+      const rName = r.round?.trim().toLowerCase() || '';
+      if (rName.includes('фінал') && !rName.includes('1/2') && r.athlete?._id) {
+        set.add(`${r.discipline._id}__${r.athlete._id}`);
+      }
+    });
+    return set;
+  }, [results.data]);
+
+  const renderPlace = (r: Result, round?: string | null) => {
+    const isPrelim = round && !round.toLowerCase().includes('фінал');
+    if (isPrelim) {
+      const isFinalist = r.athlete?._id && finalistAthleteIds.has(`${r.discipline._id}__${r.athlete._id}`);
+      if (isFinalist) {
+        return (
+          <Badge bg="danger-subtle" text="danger" className="border border-danger-subtle px-1" title="Учасник(ця) фіналу">
+            Ф
+          </Badge>
+        );
+      }
+    }
+    return r.place ?? '–';
+  };
 
   // Grouped by discipline, gender AND round (Absolute view)
   const byDiscipline = useMemo(() => {
@@ -330,7 +361,7 @@ export default function CompetitionPage() {
                       <tbody>
                         {[...list].sort(rank).map((r) => (
                           <tr key={r._id}>
-                            <td>{r.place ?? '–'}</td>
+                            <td>{renderPlace(r, round)}</td>
                             <td>
                               {r.athlete ? (
                                 <div>
@@ -421,7 +452,7 @@ export default function CompetitionPage() {
                       <tbody>
                         {[...list].sort(rank).map((r) => (
                           <tr key={r._id}>
-                            <td>{r.place ?? '–'}</td>
+                            <td>{renderPlace(r, round)}</td>
                             <td>
                               {r.athlete ? (
                                 <div>

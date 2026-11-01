@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ageCategory } from '../../common/age-category';
@@ -9,6 +9,8 @@ import { determineSeason } from '../../common/season';
 import { Athlete, Competition, Discipline, Result } from '../schemas';
 import { determineSportRank } from '../ua-ranks';
 import { calculateWaScore } from '../wa-scoring';
+import { SeasonsService } from './seasons.service';
+import { AppCacheService } from '../../common/cache/app-cache.service';
 
 const oid = (v: any) => String(v?._id ?? v);
 
@@ -19,6 +21,8 @@ export class ResultsService extends CrudService {
     @InjectModel(Athlete.name) private athletes: Model<Athlete>,
     @InjectModel(Competition.name) private competitions: Model<Competition>,
     @InjectModel(Discipline.name) private disciplines: Model<Discipline>,
+    @Optional() private readonly seasonsService?: SeasonsService,
+    @Optional() private readonly cache?: AppCacheService,
   ) {
     super(model);
   }
@@ -139,16 +143,25 @@ export class ResultsService extends CrudService {
     const mode = params.mode || 'sb';
     const limit = params.limit ?? 10;
 
-    // 1. Determine all available season years from competitions
-    const allCompDates = await this.competitions.find({}, 'date name').lean();
-    const yearSet = new Set<number>();
-    for (const c of allCompDates) {
-      if (c.date) {
-        yearSet.add(determineSeason(c.date, c.name).year);
+    // 1. Determine target year and available years (using cached SeasonsService if available)
+    let availableYears: number[] = [];
+    let targetYear = params.year ?? new Date().getFullYear();
+
+    if (this.seasonsService) {
+      const yearContext = await this.seasonsService.getActiveYearContext(params.year);
+      targetYear = yearContext.targetYear;
+      availableYears = yearContext.allYears;
+    } else {
+      const allCompDates = await this.competitions.find({}, 'date name').lean();
+      const yearSet = new Set<number>();
+      for (const c of allCompDates) {
+        if (c.date) {
+          yearSet.add(determineSeason(c.date, c.name).year);
+        }
       }
+      availableYears = Array.from(yearSet).sort((a, b) => b - a);
+      targetYear = params.year || availableYears[0] || new Date().getFullYear();
     }
-    const availableYears = Array.from(yearSet).sort((a, b) => b - a);
-    const targetYear = params.year || availableYears[0] || new Date().getFullYear();
 
     // 2. Build results query
     const filter: any = {
