@@ -9,6 +9,19 @@ import { SeasonsService } from './seasons.service';
 
 @Injectable()
 export class RankingsService {
+  // In-memory cache for default year resolution and available years
+  private cachedYearResolution: {
+    defaultYear: number;
+    allYears: number[];
+    expiresAt: number;
+  } | null = null;
+
+  // In-memory cache for calculated rankings per target year
+  private rankingsCache = new Map<number, { data: any; expiresAt: number }>();
+
+  // Cache TTL: 10 minutes
+  private readonly CACHE_TTL_MS = 10 * 60 * 1000;
+
   constructor(
     @InjectModel(Athlete.name) private athletes: Model<Athlete>,
     @InjectModel(Result.name) private results: Model<Result>,
@@ -18,54 +31,54 @@ export class RankingsService {
     private readonly seasonsService: SeasonsService,
   ) {}
 
-  async getRankings(yearOrSeasonId?: string | number) {
+  /**
+   * Clears the rankings and year resolution cache (e.g. after importing new protocols/results)
+   */
+  invalidateCache() {
+    this.cachedYearResolution = null;
+    this.rankingsCache.clear();
+  }
+
+  private async resolveYearContext(yearOrSeasonId?: string | number): Promise<{
+    targetYear: number;
+    allYears: number[];
+  }> {
+    const now = Date.now();
     const currentSpec = determineSeason();
     const currentYear = currentSpec.year;
 
-    // Ensure the current season exists in DB
-    await this.seasonsService.ensureSeason();
+    let defaultYear = currentYear;
+    let allYears: number[] = [];
 
-    // Determine target year
-    let targetYear = currentYear;
-    let explicitYearRequested = false;
-    if (yearOrSeasonId) {
-      const str = String(yearOrSeasonId).trim();
-      const num = parseInt(str, 10);
-      if (!isNaN(num) && num >= 1900 && num <= 2100 && str.length === 4) {
-        targetYear = num;
-        explicitYearRequested = true;
-      } else {
-        // Might be a Season ID
-        const matchedSeason = await this.seasons.findById(str).lean();
-        if (matchedSeason?.year) {
-          targetYear = matchedSeason.year;
-          explicitYearRequested = true;
-        }
-      }
-    }
+    // Use cached year resolution if available and not expired
+    if (this.cachedYearResolution && this.cachedYearResolution.expiresAt > now) {
+      defaultYear = this.cachedYearResolution.defaultYear;
+      allYears = this.cachedYearResolution.allYears;
+    } else {
+      // Ensure the current season exists in DB
+      await this.seasonsService.ensureSeason();
 
-    // Available season years
-    const seasonYears = await this.seasons.distinct('year');
-    const resultYears = await this.results.aggregate([
-      { $match: { status: 'OK', athlete: { $ne: null }, date: { $ne: null } } },
-      { $project: { year: { $year: '$date' } } },
-      { $group: { _id: '$year' } },
-    ]);
-    const allYears = Array.from(
-      new Set([
-        currentYear,
-        ...seasonYears,
-        ...resultYears.map((r: any) => r._id),
-      ]),
-    )
-      .filter((y): y is number => typeof y === 'number' && !isNaN(y))
-      .sort((a, b) => b - a);
+      // Available season years
+      const seasonYears = await this.seasons.distinct('year');
+      const resultYears = await this.results.aggregate([
+        { $match: { status: 'OK', athlete: { $ne: null }, date: { $ne: null } } },
+        { $project: { year: { $year: '$date' } } },
+        { $group: { _id: '$year' } },
+      ]);
+      allYears = Array.from(
+        new Set([
+          currentYear,
+          ...seasonYears,
+          ...resultYears.map((r: any) => r._id),
+        ]),
+      )
+        .filter((y): y is number => typeof y === 'number' && !isNaN(y))
+        .sort((a, b) => b - a);
 
-    // If no year was explicitly requested, and current year has no results, fallback to latest year with results
-    if (!explicitYearRequested) {
-      const startOfSeasonYear = new Date(Date.UTC(targetYear - 1, 10, 1));
-      const endOfSeasonYear = new Date(Date.UTC(targetYear, 9, 31, 23, 59, 59, 999));
-      const matchingSeasons = await this.seasons.find({ year: targetYear }).select('_id').lean();
+      // Check if current athletic season year has any results
+      const startOfSeasonYear = new Date(Date.UTC(currentYear - 1, 10, 1));
+      const endOfSeasonYear = new Date(Date.UTC(currentYear, 9, 31, 23, 59, 59, 999));
+      const matchingSeasons = await this.seasons.find({ year: currentYear }).select('_id').lean();
       const seasonIds = matchingSeasons.map((s) => s._id);
 
       const hasResults = await this.results.countDocuments({
@@ -86,12 +99,48 @@ export class RankingsService {
 
         if (latestResult?.date) {
           const seasonSpec = determineSeason(new Date(latestResult.date));
-          targetYear = seasonSpec.year;
+          defaultYear = seasonSpec.year;
         } else {
           const fallback = allYears.find((y) => y !== currentYear);
-          if (fallback) targetYear = fallback;
+          if (fallback) defaultYear = fallback;
         }
       }
+
+      this.cachedYearResolution = {
+        defaultYear,
+        allYears,
+        expiresAt: now + this.CACHE_TTL_MS,
+      };
+    }
+
+    // Determine target year
+    let targetYear = defaultYear;
+    if (yearOrSeasonId) {
+      const str = String(yearOrSeasonId).trim();
+      const num = parseInt(str, 10);
+      if (!isNaN(num) && num >= 1900 && num <= 2100 && str.length === 4) {
+        targetYear = num;
+      } else {
+        const matchedSeason = await this.seasons.findById(str).lean();
+        if (matchedSeason?.year) {
+          targetYear = matchedSeason.year;
+        }
+      }
+    }
+
+    return { targetYear, allYears };
+  }
+
+  async getRankings(yearOrSeasonId?: string | number) {
+    const { targetYear, allYears } = await this.resolveYearContext(yearOrSeasonId);
+
+    const now = Date.now();
+    const cachedRankings = this.rankingsCache.get(targetYear);
+    if (cachedRankings && cachedRankings.expiresAt > now) {
+      return {
+        ...cachedRankings.data,
+        allYears,
+      };
     }
 
     // Seasons matching the year (stadium + manege)
@@ -279,7 +328,7 @@ export class RankingsService {
       .sort((a, b) => b.totalPoints - a.totalPoints)
       .map((s, idx) => ({ ...s, rank: idx + 1 }));
 
-    return {
+    const result = {
       year: targetYear,
       allYears,
       categories: {
@@ -292,6 +341,13 @@ export class RankingsService {
       },
       schools: schoolsRanked.slice(0, 10),
     };
+
+    this.rankingsCache.set(targetYear, {
+      data: result,
+      expiresAt: now + this.CACHE_TTL_MS,
+    });
+
+    return result;
   }
 
   async getSchoolRankingDetails(schoolId: string, yearOrSeasonId?: string | number) {

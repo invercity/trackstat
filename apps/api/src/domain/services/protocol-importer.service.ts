@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Optional } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import * as mammoth from 'mammoth';
@@ -20,6 +20,7 @@ import { ageCategory } from '../../common/age-category';
 import { determineSeason } from '../../common/season';
 import { calculateWaScore } from '../wa-scoring';
 import { determineSportRank } from '../ua-ranks';
+import { RankingsService } from './rankings.service';
 
 export interface ParsedItemPreview {
   id: string;
@@ -127,6 +128,7 @@ export class ProtocolImporterService {
     @InjectModel(Result.name) private results: Model<Result>,
     @InjectModel(School.name) private schools: Model<School>,
     @InjectModel(Season.name) private seasons: Model<Season>,
+    @Optional() private readonly rankingsService?: RankingsService,
   ) {}
 
   async preview(fileBuffer: Buffer, fileName: string): Promise<ProtocolPreviewResponse> {
@@ -647,6 +649,9 @@ export class ProtocolImporterService {
     compDoc.disciplines = Array.from(compDisciplinesSet).map((id) => new Types.ObjectId(id));
     compDoc.ageCategories = Array.from(compCategoriesSet);
     await compDoc.save();
+
+    // Invalidate cached rankings so new results immediately reflect on leaderboard
+    this.rankingsService?.invalidateCache();
 
     return {
       success: true,
