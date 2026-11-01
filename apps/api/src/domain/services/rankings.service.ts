@@ -27,25 +27,72 @@ export class RankingsService {
 
     // Determine target year
     let targetYear = currentYear;
+    let explicitYearRequested = false;
     if (yearOrSeasonId) {
       const str = String(yearOrSeasonId).trim();
       const num = parseInt(str, 10);
       if (!isNaN(num) && num >= 1900 && num <= 2100 && str.length === 4) {
         targetYear = num;
+        explicitYearRequested = true;
       } else {
         // Might be a Season ID
         const matchedSeason = await this.seasons.findById(str).lean();
         if (matchedSeason?.year) {
           targetYear = matchedSeason.year;
+          explicitYearRequested = true;
         }
       }
     }
 
     // Available season years
     const seasonYears = await this.seasons.distinct('year');
-    const allYears = Array.from(new Set([currentYear, ...seasonYears]))
+    const resultYears = await this.results.aggregate([
+      { $match: { status: 'OK', athlete: { $ne: null }, date: { $ne: null } } },
+      { $project: { year: { $year: '$date' } } },
+      { $group: { _id: '$year' } },
+    ]);
+    const allYears = Array.from(
+      new Set([
+        currentYear,
+        ...seasonYears,
+        ...resultYears.map((r: any) => r._id),
+      ]),
+    )
       .filter((y): y is number => typeof y === 'number' && !isNaN(y))
       .sort((a, b) => b - a);
+
+    // If no year was explicitly requested, and current year has no results, fallback to latest year with results
+    if (!explicitYearRequested) {
+      const startOfSeasonYear = new Date(Date.UTC(targetYear - 1, 10, 1));
+      const endOfSeasonYear = new Date(Date.UTC(targetYear, 9, 31, 23, 59, 59, 999));
+      const matchingSeasons = await this.seasons.find({ year: targetYear }).select('_id').lean();
+      const seasonIds = matchingSeasons.map((s) => s._id);
+
+      const hasResults = await this.results.countDocuments({
+        $or: [
+          { season: { $in: seasonIds } },
+          { date: { $gte: startOfSeasonYear, $lte: endOfSeasonYear } },
+        ],
+        status: 'OK',
+        athlete: { $ne: null },
+      });
+
+      if (hasResults === 0) {
+        const latestResult = await this.results
+          .findOne({ status: 'OK', athlete: { $ne: null }, date: { $ne: null } })
+          .sort({ date: -1 })
+          .select('date')
+          .lean();
+
+        if (latestResult?.date) {
+          const seasonSpec = determineSeason(new Date(latestResult.date));
+          targetYear = seasonSpec.year;
+        } else {
+          const fallback = allYears.find((y) => y !== currentYear);
+          if (fallback) targetYear = fallback;
+        }
+      }
+    }
 
     // Seasons matching the year (stadium + manege)
     const matchingSeasons = await this.seasons.find({ year: targetYear }).select('_id year indoor label').lean();

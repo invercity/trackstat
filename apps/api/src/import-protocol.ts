@@ -303,6 +303,41 @@ async function run() {
         { upsert: true },
       );
 
+      // Якщо був попередній забіг (наприклад "11,6 Ф-11,4"), зберігаємо також результат забігу!
+      if (parsed.heatStr && athleteDoc) {
+        const heatParsed = parseVal(parsed.heatStr);
+        if (heatParsed.status === 'OK' && heatParsed.val !== null) {
+          const heatTiming = discDoc.type === 'time' ? heatParsed.timing : undefined;
+          const heatScore = calculateWaScore(currentGender, discCanonicalName, heatParsed.val, heatTiming);
+          const heatRank = determineSportRank(currentGender, discCanonicalName, heatParsed.val, heatTiming);
+
+          await ResultModel.updateOne(
+            {
+              competition: competition._id,
+              discipline: discDoc._id,
+              athlete: athleteDoc._id,
+              round: 'забіг',
+            },
+            {
+              $set: {
+                athlete: athleteDoc._id,
+                season: season._id,
+                date: compDate,
+                status: 'OK',
+                value: heatParsed.val,
+                timing: heatTiming,
+                rawMark: parsed.heatStr,
+                rank: heatRank || undefined,
+                waScore: heatScore || undefined,
+                ageCategory: athleteCat,
+                notes: 'Попередній забіг',
+              },
+            },
+            { upsert: true },
+          );
+        }
+      }
+
       importedCount++;
     }
   }
