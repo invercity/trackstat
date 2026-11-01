@@ -2,6 +2,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import './globals.css';
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
+import pkg from '../../package.json';
 import { I18nProvider } from '@/lib/i18n';
 import AppNavbar from '@/components/AppNavbar';
 
@@ -21,11 +22,15 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <AppNavbar />
           <main className="container py-4 flex-grow-1" style={{ minWidth: 0, maxWidth: '100%' }}>{children}</main>
           <footer className="py-2 mt-auto text-center text-muted small">
-            <div className="container">
-              <a href="mailto:yermolenko.ua@gmail.com" className="text-decoration-none text-secondary fw-semibold">
-                Andrii Yermolenko
-              </a>{' '}
-              &copy; 2026
+            <div className="container d-flex align-items-center justify-content-center gap-2 flex-wrap">
+              <span>
+                <a href="mailto:yermolenko.ua@gmail.com" className="text-decoration-none text-secondary fw-semibold">
+                  Andrii Yermolenko
+                </a>{' '}
+                &copy; 2026
+              </span>
+              <span className="text-muted opacity-50">&middot;</span>
+              <span className="badge bg-light text-secondary border fw-normal">v{pkg.version}</span>
             </div>
           </footer>
         </I18nProvider>
