@@ -8,3 +8,4 @@ export * from './relays.service';
 export * from './rankings.service';
 export * from './protocol-importer.service';
 export * from './web-importer.service';
+export * from '../../common/cache/app-cache.service';

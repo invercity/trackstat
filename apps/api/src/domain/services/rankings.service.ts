@@ -1,27 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ageCategory } from '../../common/age-category';
-import { determineSeason } from '../../common/season';
 import { calculateResultPoints } from '../ranking-rules';
 import { Athlete, Competition, Result, School, Season } from '../schemas';
 import { SeasonsService } from './seasons.service';
+import { AppCacheService } from '../../common/cache/app-cache.service';
 
 @Injectable()
 export class RankingsService {
-  // In-memory cache for default year resolution and available years
-  private cachedYearResolution: {
-    defaultYear: number;
-    allYears: number[];
-    expiresAt: number;
-  } | null = null;
-
-  // In-memory cache for calculated rankings per target year
-  private rankingsCache = new Map<number, { data: any; expiresAt: number }>();
-
-  // Cache TTL: 10 minutes
-  private readonly CACHE_TTL_MS = 10 * 60 * 1000;
-
   constructor(
     @InjectModel(Athlete.name) private athletes: Model<Athlete>,
     @InjectModel(Result.name) private results: Model<Result>,
@@ -29,121 +16,24 @@ export class RankingsService {
     @InjectModel(School.name) private schools: Model<School>,
     @InjectModel(Competition.name) private competitions: Model<Competition>,
     private readonly seasonsService: SeasonsService,
+    @Optional() private readonly cache: AppCacheService = new AppCacheService(),
   ) {}
 
   /**
-   * Clears the rankings and year resolution cache (e.g. after importing new protocols/results)
+   * Скидає кеш рейтингу та пов'язані дані
    */
   invalidateCache() {
-    this.cachedYearResolution = null;
-    this.rankingsCache.clear();
-  }
-
-  private async resolveYearContext(yearOrSeasonId?: string | number): Promise<{
-    targetYear: number;
-    allYears: number[];
-  }> {
-    const now = Date.now();
-    const currentSpec = determineSeason();
-    const currentYear = currentSpec.year;
-
-    let defaultYear = currentYear;
-    let allYears: number[] = [];
-
-    // Use cached year resolution if available and not expired
-    if (this.cachedYearResolution && this.cachedYearResolution.expiresAt > now) {
-      defaultYear = this.cachedYearResolution.defaultYear;
-      allYears = this.cachedYearResolution.allYears;
-    } else {
-      // Ensure the current season exists in DB
-      await this.seasonsService.ensureSeason();
-
-      // Available season years
-      const seasonYears = await this.seasons.distinct('year');
-      const resultYears = await this.results.aggregate([
-        { $match: { status: 'OK', athlete: { $ne: null }, date: { $ne: null } } },
-        { $project: { year: { $year: '$date' } } },
-        { $group: { _id: '$year' } },
-      ]);
-      allYears = Array.from(
-        new Set([
-          currentYear,
-          ...seasonYears,
-          ...resultYears.map((r: any) => r._id),
-        ]),
-      )
-        .filter((y): y is number => typeof y === 'number' && !isNaN(y))
-        .sort((a, b) => b - a);
-
-      // Check if current athletic season year has any results
-      const startOfSeasonYear = new Date(Date.UTC(currentYear - 1, 10, 1));
-      const endOfSeasonYear = new Date(Date.UTC(currentYear, 9, 31, 23, 59, 59, 999));
-      const matchingSeasons = await this.seasons.find({ year: currentYear }).select('_id').lean();
-      const seasonIds = matchingSeasons.map((s) => s._id);
-
-      const hasResults = await this.results.countDocuments({
-        $or: [
-          { season: { $in: seasonIds } },
-          { date: { $gte: startOfSeasonYear, $lte: endOfSeasonYear } },
-        ],
-        status: 'OK',
-        athlete: { $ne: null },
-      });
-
-      if (hasResults === 0) {
-        const latestResult = await this.results
-          .findOne({ status: 'OK', athlete: { $ne: null }, date: { $ne: null } })
-          .sort({ date: -1 })
-          .select('date')
-          .lean();
-
-        if (latestResult?.date) {
-          const seasonSpec = determineSeason(new Date(latestResult.date));
-          defaultYear = seasonSpec.year;
-        } else {
-          const fallback = allYears.find((y) => y !== currentYear);
-          if (fallback) defaultYear = fallback;
-        }
-      }
-
-      this.cachedYearResolution = {
-        defaultYear,
-        allYears,
-        expiresAt: now + this.CACHE_TTL_MS,
-      };
-    }
-
-    // Determine target year
-    let targetYear = defaultYear;
-    if (yearOrSeasonId) {
-      const str = String(yearOrSeasonId).trim();
-      const num = parseInt(str, 10);
-      if (!isNaN(num) && num >= 1900 && num <= 2100 && str.length === 4) {
-        targetYear = num;
-      } else {
-        const matchedSeason = await this.seasons.findById(str).lean();
-        if (matchedSeason?.year) {
-          targetYear = matchedSeason.year;
-        }
-      }
-    }
-
-    return { targetYear, allYears };
+    this.seasonsService.invalidateYearContext();
+    this.cache.deletePrefix('rankings:');
   }
 
   async getRankings(yearOrSeasonId?: string | number) {
-    const { targetYear, allYears } = await this.resolveYearContext(yearOrSeasonId);
+    const { targetYear, allYears } = await this.seasonsService.getActiveYearContext(yearOrSeasonId);
 
-    const now = Date.now();
-    const cachedRankings = this.rankingsCache.get(targetYear);
-    if (cachedRankings && cachedRankings.expiresAt > now) {
-      return {
-        ...cachedRankings.data,
-        allYears,
-      };
-    }
-
-    // Seasons matching the year (stadium + manege)
+    return this.cache.getOrSet(
+      `rankings:${targetYear}`,
+      async () => {
+        // Seasons matching the year (stadium + manege)
     const matchingSeasons = await this.seasons.find({ year: targetYear }).select('_id year indoor label').lean();
     const seasonIds = matchingSeasons.map((s) => s._id);
 
@@ -328,26 +218,22 @@ export class RankingsService {
       .sort((a, b) => b.totalPoints - a.totalPoints)
       .map((s, idx) => ({ ...s, rank: idx + 1 }));
 
-    const result = {
-      year: targetYear,
-      allYears,
-      categories: {
-        u16_m,
-        u16_f,
-        u18_m,
-        u18_f,
-        adult_m,
-        adult_f,
+        return {
+          year: targetYear,
+          allYears,
+          categories: {
+            u16_m,
+            u16_f,
+            u18_m,
+            u18_f,
+            adult_m,
+            adult_f,
+          },
+          schools: schoolsRanked.slice(0, 10),
+        };
       },
-      schools: schoolsRanked.slice(0, 10),
-    };
-
-    this.rankingsCache.set(targetYear, {
-      data: result,
-      expiresAt: now + this.CACHE_TTL_MS,
-    });
-
-    return result;
+      10 * 60 * 1000,
+    );
   }
 
   async getSchoolRankingDetails(schoolId: string, yearOrSeasonId?: string | number) {
